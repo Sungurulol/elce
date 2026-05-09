@@ -1,5 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Any
+from datetime import datetime
 import json
 from pathlib import Path
 
@@ -23,6 +26,25 @@ LESSONS_FILE = DATA_DIR / "lessons.json"
 SCENARIOS_FILE = DATA_DIR / "scenarios.json"
 PROGRESS_FILE = DATA_DIR / "user_progress.json"
 UNITS_FILE = DATA_DIR / "units.json"
+GESTURE_SAMPLES_FILE = DATA_DIR / "gesture_samples.json"
+GESTURE_SEQUENCES_FILE = DATA_DIR / "gesture_sequences.json"
+
+
+class GestureSample(BaseModel):
+    label: str
+    lessonId: int
+    expectedHands: int
+    detectedHands: int
+    hands: list[dict[str, Any]]
+
+
+class GestureSequence(BaseModel):
+    label: str
+    lessonId: int
+    expectedHands: int
+    durationMs: int
+    frameCount: int
+    frames: list[dict[str, Any]]
 
 
 def read_json(file_path: Path):
@@ -36,6 +58,11 @@ def read_json(file_path: Path):
 def write_json(file_path: Path, data):
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
+
+
+def ensure_json_file(file_path: Path, default_data):
+    if not file_path.exists():
+        write_json(file_path, default_data)
 
 
 def normalize_progress(progress):
@@ -221,4 +248,81 @@ def complete_speed_test(lesson_id: int):
         "lesson": selected_lesson,
         "earnedXp": 10,
         "progress": progress
+    }
+
+
+@app.get("/gesture-samples")
+def get_gesture_samples():
+    ensure_json_file(GESTURE_SAMPLES_FILE, [])
+
+    samples = read_json(GESTURE_SAMPLES_FILE)
+
+    return {
+        "count": len(samples),
+        "samples": samples
+    }
+
+
+@app.post("/gesture-samples")
+def create_gesture_sample(sample: GestureSample):
+    ensure_json_file(GESTURE_SAMPLES_FILE, [])
+
+    samples = read_json(GESTURE_SAMPLES_FILE)
+
+    new_sample = {
+        "id": len(samples) + 1,
+        "label": sample.label,
+        "lessonId": sample.lessonId,
+        "expectedHands": sample.expectedHands,
+        "detectedHands": sample.detectedHands,
+        "hands": sample.hands,
+        "createdAt": datetime.now().isoformat()
+    }
+
+    samples.append(new_sample)
+    write_json(GESTURE_SAMPLES_FILE, samples)
+
+    return {
+        "message": "Gesture sample saved",
+        "sample": new_sample,
+        "count": len(samples)
+    }
+
+
+@app.get("/gesture-sequences")
+def get_gesture_sequences():
+    ensure_json_file(GESTURE_SEQUENCES_FILE, [])
+
+    sequences = read_json(GESTURE_SEQUENCES_FILE)
+
+    return {
+        "count": len(sequences),
+        "sequences": sequences
+    }
+
+
+@app.post("/gesture-sequences")
+def create_gesture_sequence(sequence: GestureSequence):
+    ensure_json_file(GESTURE_SEQUENCES_FILE, [])
+
+    sequences = read_json(GESTURE_SEQUENCES_FILE)
+
+    new_sequence = {
+        "id": len(sequences) + 1,
+        "label": sequence.label,
+        "lessonId": sequence.lessonId,
+        "expectedHands": sequence.expectedHands,
+        "durationMs": sequence.durationMs,
+        "frameCount": sequence.frameCount,
+        "frames": sequence.frames,
+        "createdAt": datetime.now().isoformat()
+    }
+
+    sequences.append(new_sequence)
+    write_json(GESTURE_SEQUENCES_FILE, sequences)
+
+    return {
+        "message": "Gesture sequence saved",
+        "sequence": new_sequence,
+        "count": len(sequences)
     }

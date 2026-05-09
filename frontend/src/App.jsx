@@ -15,6 +15,9 @@ function App() {
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("");
+  const [sequenceStatus, setSequenceStatus] = useState("");
+  const [isRecordingSequence, setIsRecordingSequence] = useState(false);
+
   const [gestureCheck, setGestureCheck] = useState({
     checked: false,
     passed: false,
@@ -32,6 +35,11 @@ function App() {
   const streamRef = useRef(null);
   const handLandmarkerRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const latestHandsRef = useRef([]);
+
+  const sequenceFramesRef = useRef([]);
+  const isRecordingSequenceRef = useRef(false);
+  const sequenceStartTimeRef = useRef(null);
 
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, options);
@@ -94,6 +102,7 @@ function App() {
       setSelectedOption("");
       setFeedback("");
       setCameraStatus("");
+      setSequenceStatus("");
       resetGestureCheck();
       resetHandStatus();
       stopCamera();
@@ -109,6 +118,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    setSequenceStatus("");
     resetGestureCheck();
     resetHandStatus();
   }
@@ -131,6 +141,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    setSequenceStatus("");
     resetGestureCheck();
     resetHandStatus();
   }
@@ -148,6 +159,12 @@ function App() {
   }
 
   function resetHandStatus() {
+    latestHandsRef.current = [];
+    sequenceFramesRef.current = [];
+    sequenceStartTimeRef.current = null;
+    isRecordingSequenceRef.current = false;
+    setIsRecordingSequence(false);
+
     setHandStatus({
       ready: Boolean(handLandmarkerRef.current),
       detected: false,
@@ -181,6 +198,7 @@ function App() {
         videoRef.current.onloadeddata = () => {
           setCameraActive(true);
           setCameraStatus("Kamera acildi. Elini kameraya net sekilde goster.");
+          setSequenceStatus("");
           resetGestureCheck();
           startHandDetectionLoop();
         };
@@ -205,6 +223,8 @@ function App() {
       videoRef.current.srcObject = null;
     }
 
+    isRecordingSequenceRef.current = false;
+    setIsRecordingSequence(false);
     setCameraActive(false);
   }
 
@@ -246,6 +266,21 @@ function App() {
           handedness,
           score,
           landmarkCount: results.landmarks[i].length,
+          landmarks: results.landmarks[i].map((point) => ({
+            x: point.x,
+            y: point.y,
+            z: point.z,
+          })),
+        });
+      }
+
+      latestHandsRef.current = hands;
+
+      if (isRecordingSequenceRef.current && sequenceStartTimeRef.current !== null) {
+        sequenceFramesRef.current.push({
+          timestampMs: Math.round(performance.now() - sequenceStartTimeRef.current),
+          handCount,
+          hands,
         });
       }
 
@@ -313,6 +348,64 @@ function App() {
     } else {
       setFeedback(result.message);
     }
+  }
+
+  async function saveGestureSequence(currentExercise) {
+    if (!cameraActive) {
+      setSequenceStatus("Once kamerayi ac.");
+      return;
+    }
+
+    if (isRecordingSequenceRef.current) {
+      setSequenceStatus("Sequence kaydi zaten devam ediyor.");
+      return;
+    }
+
+    const durationMs = 3000;
+
+    sequenceFramesRef.current = [];
+    sequenceStartTimeRef.current = performance.now();
+    isRecordingSequenceRef.current = true;
+
+    setIsRecordingSequence(true);
+    setSequenceStatus("3 saniyelik sequence kaydi basladi. Hareketi yap.");
+
+    setTimeout(async () => {
+      isRecordingSequenceRef.current = false;
+      setIsRecordingSequence(false);
+
+      const frames = sequenceFramesRef.current;
+
+      if (frames.length === 0) {
+        setSequenceStatus("Sequence kaydedilemedi. Frame bulunamadi.");
+        return;
+      }
+
+      try {
+        const payload = {
+          label: currentExercise.expectedGesture,
+          lessonId: selectedLesson.id,
+          expectedHands: currentExercise.expectedHands || 1,
+          durationMs,
+          frameCount: frames.length,
+          frames,
+        };
+
+        const result = await fetchJson(`${API_URL}/gesture-sequences`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        setSequenceStatus(
+          `${currentExercise.expectedGesture} icin 3 sn sequence kaydedildi. Frame: ${frames.length}. Toplam sequence: ${result.count}`
+        );
+      } catch (err) {
+        setSequenceStatus("Sequence kaydedilemedi. Backend endpointini kontrol et.");
+      }
+    }, durationMs);
   }
 
   async function completeLessonFlow() {
@@ -557,6 +650,14 @@ function App() {
                   >
                     Hareketi Kontrol Et
                   </button>
+
+                  <button
+                    className="sequence-button"
+                    onClick={() => saveGestureSequence(currentExercise)}
+                    disabled={isRecordingSequence}
+                  >
+                    {isRecordingSequence ? "Kaydediliyor..." : "3 sn Sequence Kaydet"}
+                  </button>
                 </div>
 
                 {cameraStatus && (
@@ -564,6 +665,10 @@ function App() {
                 )}
 
                 {feedback && <strong className="feedback">{feedback}</strong>}
+
+                {sequenceStatus && (
+                  <strong className="sequence-feedback">{sequenceStatus}</strong>
+                )}
 
                 <button onClick={goNextExercise} disabled={!gestureCheck.passed}>
                   Dersi Bitir

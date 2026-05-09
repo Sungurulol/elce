@@ -566,3 +566,17 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.sequence-button {
+  background: #ea580c;
+}
+
+.sequence-button:disabled {
+  opacity: 0.65;
+}
+
+.sequence-feedback {
+  display: inline-block;
+  color: #ea580c;
+  font-weight: 900;
+}
