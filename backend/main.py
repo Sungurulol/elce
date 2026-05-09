@@ -35,6 +35,7 @@ TARGET_FRAME_COUNT = 60
 MAX_HANDS = 2
 HAND_LANDMARK_COUNT = 21
 MOUTH_LANDMARK_COUNT = 40
+TARGET_SAMPLES_PER_VARIANT = 5
 
 BLENDSHAPE_NAMES = [
     "jawOpen",
@@ -52,6 +53,7 @@ BLENDSHAPE_NAMES = [
 
 class GestureSample(BaseModel):
     label: str
+    variantLabel: str | None = None
     lessonId: int
     expectedHands: int
     detectedHands: int
@@ -60,6 +62,7 @@ class GestureSample(BaseModel):
 
 class GestureSequence(BaseModel):
     label: str
+    variantLabel: str | None = None
     lessonId: int
     expectedHands: int
     durationMs: int
@@ -235,6 +238,16 @@ def resample_frames(frames, target_count=TARGET_FRAME_COUNT):
     return sampled
 
 
+def get_variant_label(sequence):
+    label = sequence.get("label") or "unknown"
+    variant_label = sequence.get("variantLabel")
+
+    if variant_label:
+        return variant_label
+
+    return f"{label}_v1"
+
+
 def normalize_sequence(sequence):
     raw_frames = sequence.get("frames", [])
     sampled_frames = resample_frames(raw_frames, TARGET_FRAME_COUNT)
@@ -248,6 +261,7 @@ def normalize_sequence(sequence):
     return {
         "id": sequence.get("id"),
         "label": sequence.get("label"),
+        "variantLabel": get_variant_label(sequence),
         "lessonId": sequence.get("lessonId"),
         "expectedHands": sequence.get("expectedHands"),
         "sourceFrameCount": sequence.get("frameCount", len(raw_frames)),
@@ -261,6 +275,175 @@ def normalize_sequence(sequence):
         },
         "frames": normalized_frames,
         "createdAt": datetime.now().isoformat(),
+    }
+
+
+def get_camera_gestures_from_units():
+    ensure_json_file(UNITS_FILE, [])
+
+    units = read_json(UNITS_FILE)
+    gestures = {}
+
+    for unit in units:
+        for lesson in unit.get("lessons", []):
+            for exercise in lesson.get("exercises", []):
+                if exercise.get("type") != "camera":
+                    continue
+
+                label = exercise.get("expectedGesture")
+
+                if not label:
+                    continue
+
+                accepted_variants = exercise.get("acceptedVariants", [])
+
+                if not accepted_variants:
+                    accepted_variants = [
+                        {
+                            "id": f"{label}_v1",
+                            "title": f"{label} - Varyant 1",
+                        }
+                    ]
+
+                if label not in gestures:
+                    gestures[label] = {
+                        "label": label,
+                        "lessonIds": [],
+                        "titles": [],
+                        "expectedHands": exercise.get("expectedHands", 1),
+                        "variants": [],
+                    }
+
+                if lesson.get("id") not in gestures[label]["lessonIds"]:
+                    gestures[label]["lessonIds"].append(lesson.get("id"))
+
+                if lesson.get("title") not in gestures[label]["titles"]:
+                    gestures[label]["titles"].append(lesson.get("title"))
+
+                existing_variant_ids = {
+                    variant["id"] for variant in gestures[label]["variants"]
+                }
+
+                for variant in accepted_variants:
+                    variant_id = variant.get("id")
+
+                    if not variant_id:
+                        continue
+
+                    if variant_id not in existing_variant_ids:
+                        gestures[label]["variants"].append({
+                            "id": variant_id,
+                            "title": variant.get("title", variant_id),
+                            "label": label,
+                            "lessonId": lesson.get("id"),
+                            "expectedHands": exercise.get("expectedHands", 1),
+                        })
+                        existing_variant_ids.add(variant_id)
+
+    return gestures
+
+
+def count_by_label(items):
+    counts = {}
+
+    for item in items:
+        label = item.get("label")
+
+        if not label:
+            continue
+
+        counts[label] = counts.get(label, 0) + 1
+
+    return counts
+
+
+def count_by_variant(items):
+    counts = {}
+
+    for item in items:
+        variant_label = get_variant_label(item)
+
+        if not variant_label:
+            continue
+
+        counts[variant_label] = counts.get(variant_label, 0) + 1
+
+    return counts
+
+
+def build_dataset_summary():
+    ensure_json_file(GESTURE_SEQUENCES_FILE, [])
+    ensure_json_file(NORMALIZED_SEQUENCES_FILE, [])
+
+    gestures = get_camera_gestures_from_units()
+    raw_sequences = read_json(GESTURE_SEQUENCES_FILE)
+    normalized_sequences = read_json(NORMALIZED_SEQUENCES_FILE)
+
+    raw_counts_by_label = count_by_label(raw_sequences)
+    normalized_counts_by_label = count_by_label(normalized_sequences)
+
+    raw_counts_by_variant = count_by_variant(raw_sequences)
+    normalized_counts_by_variant = count_by_variant(normalized_sequences)
+
+    items = []
+
+    for label in sorted(gestures.keys()):
+        gesture_info = gestures[label]
+
+        variants = []
+
+        for variant in gesture_info["variants"]:
+            variant_id = variant["id"]
+            raw_count = raw_counts_by_variant.get(variant_id, 0)
+            normalized_count = normalized_counts_by_variant.get(variant_id, 0)
+            remaining = max(TARGET_SAMPLES_PER_VARIANT - raw_count, 0)
+
+            variants.append({
+                "id": variant_id,
+                "title": variant["title"],
+                "rawCount": raw_count,
+                "normalizedCount": normalized_count,
+                "target": TARGET_SAMPLES_PER_VARIANT,
+                "remaining": remaining,
+                "isReady": raw_count >= TARGET_SAMPLES_PER_VARIANT,
+            })
+
+        raw_count_total = raw_counts_by_label.get(label, 0)
+        normalized_count_total = normalized_counts_by_label.get(label, 0)
+        variant_target_total = TARGET_SAMPLES_PER_VARIANT * max(len(variants), 1)
+        remaining_total = max(variant_target_total - raw_count_total, 0)
+
+        items.append({
+            "label": label,
+            "titles": gesture_info["titles"],
+            "lessonIds": gesture_info["lessonIds"],
+            "expectedHands": gesture_info["expectedHands"],
+            "rawCount": raw_count_total,
+            "normalizedCount": normalized_count_total,
+            "target": variant_target_total,
+            "remaining": remaining_total,
+            "isReady": raw_count_total >= variant_target_total,
+            "variants": variants,
+        })
+
+    ready_count = sum(1 for item in items if item["isReady"])
+    variant_count = sum(len(item["variants"]) for item in items)
+    ready_variant_count = sum(
+        1
+        for item in items
+        for variant in item["variants"]
+        if variant["isReady"]
+    )
+
+    return {
+        "targetPerVariant": TARGET_SAMPLES_PER_VARIANT,
+        "totalGestures": len(items),
+        "readyGestures": ready_count,
+        "totalVariants": variant_count,
+        "readyVariants": ready_variant_count,
+        "totalSequences": len(raw_sequences),
+        "totalNormalizedSequences": len(normalized_sequences),
+        "items": items,
     }
 
 
@@ -439,9 +622,12 @@ def create_gesture_sample(sample: GestureSample):
 
     samples = read_json(GESTURE_SAMPLES_FILE)
 
+    variant_label = sample.variantLabel or f"{sample.label}_v1"
+
     new_sample = {
         "id": len(samples) + 1,
         "label": sample.label,
+        "variantLabel": variant_label,
         "lessonId": sample.lessonId,
         "expectedHands": sample.expectedHands,
         "detectedHands": sample.detectedHands,
@@ -477,9 +663,12 @@ def create_gesture_sequence(sequence: GestureSequence):
 
     sequences = read_json(GESTURE_SEQUENCES_FILE)
 
+    variant_label = sequence.variantLabel or f"{sequence.label}_v1"
+
     new_sequence = {
         "id": len(sequences) + 1,
         "label": sequence.label,
+        "variantLabel": variant_label,
         "lessonId": sequence.lessonId,
         "expectedHands": sequence.expectedHands,
         "durationMs": sequence.durationMs,
@@ -531,3 +720,8 @@ def normalize_sequences():
         "normalizedCount": len(normalized_sequences),
         "targetFrameCount": TARGET_FRAME_COUNT,
     }
+
+
+@app.get("/dataset-summary")
+def get_dataset_summary():
+    return build_dataset_summary()

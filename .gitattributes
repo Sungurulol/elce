@@ -1,0 +1,2 @@
+backend/data/gesture_sequences.json filter=lfs diff=lfs merge=lfs -text
+backend/data/normalized_sequences.json filter=lfs diff=lfs merge=lfs -text

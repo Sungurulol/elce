@@ -18,4 +18,5 @@ ai-lab/models/
 .DS_Store
 
 # Logs
-*.log
+*.loglocal_dataset_backup/
+local_dataset_backup/

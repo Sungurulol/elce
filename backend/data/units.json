@@ -34,7 +34,13 @@
             "prompt": "'Merhaba' isaretini kameraya goster.",
             "expectedGesture": "merhaba",
             "expectedHands": 1,
-            "minLandmarksPerHand": 21
+            "minLandmarksPerHand": 21,
+            "acceptedVariants": [
+              {
+                "id": "merhaba_v1",
+                "title": "Merhaba - Varyant 1"
+              }
+            ]
           }
         ]
       },
@@ -49,7 +55,7 @@
             "type": "learn",
             "title": "Tesekkurler isareti",
             "prompt": "Bu derste 'Tesekkurler' ifadesini ogreniyorsun.",
-            "content": "Tesekkurler, minnettarlik gostermek icin kullanilan temel ifadelerden biridir.",
+            "content": "Tesekkurler, minnettarlik gostermek icin kullanilan temel ifadelerden biridir. Bu hareketin birden fazla varyanti olabilir.",
             "answer": "Tesekkurler"
           },
           {
@@ -64,10 +70,24 @@
             "id": 3,
             "type": "camera",
             "title": "Kamera pratigi",
-            "prompt": "'Tesekkurler' isaretini kameraya goster.",
+            "prompt": "'Tesekkurler' isaretinin secilen varyantini kameraya goster.",
             "expectedGesture": "tesekkurler",
             "expectedHands": 1,
-            "minLandmarksPerHand": 21
+            "minLandmarksPerHand": 21,
+            "acceptedVariants": [
+              {
+                "id": "tesekkurler_v1",
+                "title": "Tesekkurler - Varyant 1"
+              },
+              {
+                "id": "tesekkurler_v2",
+                "title": "Tesekkurler - Varyant 2"
+              },
+              {
+                "id": "tesekkurler_v3",
+                "title": "Tesekkurler - Varyant 3"
+              }
+            ]
           }
         ]
       }
@@ -108,7 +128,13 @@
             "prompt": "'Yardim' isaretini kameraya goster.",
             "expectedGesture": "yardim",
             "expectedHands": 2,
-            "minLandmarksPerHand": 21
+            "minLandmarksPerHand": 21,
+            "acceptedVariants": [
+              {
+                "id": "yardim_v1",
+                "title": "Yardim - Varyant 1"
+              }
+            ]
           }
         ]
       },
@@ -141,7 +167,13 @@
             "prompt": "'Hastane' isaretini kameraya goster.",
             "expectedGesture": "hastane",
             "expectedHands": 1,
-            "minLandmarksPerHand": 21
+            "minLandmarksPerHand": 21,
+            "acceptedVariants": [
+              {
+                "id": "hastane_v1",
+                "title": "Hastane - Varyant 1"
+              }
+            ]
           }
         ]
       }

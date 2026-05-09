@@ -17,9 +17,12 @@ const MOUTH_LANDMARK_INDICES = [
 function App() {
   const [units, setUnits] = useState([]);
   const [progress, setProgress] = useState(null);
+  const [datasetSummary, setDatasetSummary] = useState(null);
+
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
+  const [selectedVariantLabel, setSelectedVariantLabel] = useState("");
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
 
@@ -72,17 +75,67 @@ function App() {
     return response.json();
   }
 
+  async function loadDatasetSummary() {
+    const summaryData = await fetchJson(`${API_URL}/dataset-summary`);
+    setDatasetSummary(summaryData);
+  }
+
   async function loadData() {
     try {
       const unitsData = await fetchJson(`${API_URL}/units`);
       const progressData = await fetchJson(`${API_URL}/progress`);
+      const summaryData = await fetchJson(`${API_URL}/dataset-summary`);
 
       setUnits(unitsData);
       setProgress(progressData);
+      setDatasetSummary(summaryData);
       setError("");
     } catch (err) {
       setError("Backend baglantisi basarisiz. Once backend'i calistir.");
     }
+  }
+
+  function getExerciseVariants(exercise) {
+    if (!exercise || exercise.type !== "camera") {
+      return [];
+    }
+
+    if (exercise.acceptedVariants && exercise.acceptedVariants.length > 0) {
+      return exercise.acceptedVariants;
+    }
+
+    return [
+      {
+        id: `${exercise.expectedGesture}_v1`,
+        title: `${exercise.expectedGesture} - Varyant 1`,
+      },
+    ];
+  }
+
+  function getActiveVariantLabel(exercise) {
+    const variants = getExerciseVariants(exercise);
+
+    if (selectedVariantLabel) {
+      return selectedVariantLabel;
+    }
+
+    if (variants.length > 0) {
+      return variants[0].id;
+    }
+
+    return `${exercise.expectedGesture}_v1`;
+  }
+
+  function getActiveVariantTitle(exercise) {
+    const variants = getExerciseVariants(exercise);
+    const activeVariantLabel = getActiveVariantLabel(exercise);
+    const activeVariant = variants.find((variant) => variant.id === activeVariantLabel);
+
+    if (activeVariant) {
+      return activeVariant.title;
+    }
+
+    return activeVariantLabel;
   }
 
   async function setupHandLandmarker() {
@@ -151,6 +204,7 @@ function App() {
       setSelectedLesson(lessonData);
       setExerciseIndex(0);
       setSelectedOption("");
+      setSelectedVariantLabel("");
       setFeedback("");
       setCameraStatus("");
       setSequenceStatus("");
@@ -168,6 +222,7 @@ function App() {
     setSelectedLesson(null);
     setExerciseIndex(0);
     setSelectedOption("");
+    setSelectedVariantLabel("");
     setFeedback("");
     setCameraStatus("");
     setSequenceStatus("");
@@ -192,6 +247,7 @@ function App() {
 
     setExerciseIndex(exerciseIndex + 1);
     setSelectedOption("");
+    setSelectedVariantLabel("");
     setFeedback("");
     setCameraStatus("");
     setSequenceStatus("");
@@ -514,8 +570,12 @@ function App() {
       }
 
       try {
+        const variantLabel = getActiveVariantLabel(currentExercise);
+        const variantTitle = getActiveVariantTitle(currentExercise);
+
         const payload = {
           label: currentExercise.expectedGesture,
+          variantLabel,
           lessonId: selectedLesson.id,
           expectedHands: currentExercise.expectedHands || 1,
           durationMs,
@@ -531,8 +591,10 @@ function App() {
           body: JSON.stringify(payload),
         });
 
+        await loadDatasetSummary();
+
         setSequenceStatus(
-          `${currentExercise.expectedGesture} icin 3 sn sequence kaydedildi. Frame: ${frames.length}. Toplam sequence: ${result.count}`
+          `${variantTitle} icin 3 sn sequence kaydedildi. Frame: ${frames.length}. Toplam sequence: ${result.count}`
         );
       } catch (err) {
         setSequenceStatus("Sequence kaydedilemedi. Backend endpointini kontrol et.");
@@ -594,6 +656,8 @@ function App() {
     const currentExercise = selectedLesson.exercises[exerciseIndex];
     const totalExercises = selectedLesson.exercises.length;
     const progressPercent = ((exerciseIndex + 1) / totalExercises) * 100;
+    const variants = getExerciseVariants(currentExercise);
+    const activeVariantLabel = getActiveVariantLabel(currentExercise);
 
     return (
       <main className="container lesson-page">
@@ -678,6 +742,22 @@ function App() {
               <div className="exercise-box">
                 <h2>{currentExercise.prompt}</h2>
 
+                <div className="variant-select-box">
+                  <label htmlFor="variant-select">Kaydedilecek varyant</label>
+                  <select
+                    id="variant-select"
+                    value={activeVariantLabel}
+                    onChange={(event) => setSelectedVariantLabel(event.target.value)}
+                    disabled={isRecordingSequence}
+                  >
+                    {variants.map((variant) => (
+                      <option key={variant.id} value={variant.id}>
+                        {variant.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="camera-live-box">
                   <video ref={videoRef} autoPlay playsInline muted />
 
@@ -701,6 +781,10 @@ function App() {
                     <div>
                       <span>Beklenen hareket</span>
                       <strong>{currentExercise.expectedGesture}</strong>
+                    </div>
+                    <div>
+                      <span>Secilen varyant</span>
+                      <strong>{activeVariantLabel}</strong>
                     </div>
                     <div>
                       <span>Gerekli el sayisi</span>
@@ -881,6 +965,122 @@ function App() {
             <strong>{progress.badges.length}</strong>
           </div>
         </div>
+      </section>
+
+      <section className="card dataset-card">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Dataset Durumu</p>
+            <h2>Hareket ve varyant veri hedefleri</h2>
+          </div>
+
+          {datasetSummary && (
+            <span>
+              {datasetSummary.readyVariants}/{datasetSummary.totalVariants} varyant hazir
+            </span>
+          )}
+        </div>
+
+        {!datasetSummary ? (
+          <p>Dataset ozeti yukleniyor...</p>
+        ) : (
+          <>
+            <div className="dataset-overview">
+              <div>
+                <span>Raw Sequence</span>
+                <strong>{datasetSummary.totalSequences}</strong>
+              </div>
+
+              <div>
+                <span>Normalized</span>
+                <strong>{datasetSummary.totalNormalizedSequences}</strong>
+              </div>
+
+              <div>
+                <span>Varyant Hedefi</span>
+                <strong>{datasetSummary.targetPerVariant}</strong>
+              </div>
+            </div>
+
+            <div className="dataset-list">
+              {datasetSummary.items.map((item) => {
+                const progressPercent = Math.min(
+                  (item.rawCount / item.target) * 100,
+                  100
+                );
+
+                return (
+                  <article className="dataset-item" key={item.label}>
+                    <div className="dataset-item-header">
+                      <div>
+                        <h3>{item.label}</h3>
+                        <p>
+                          Raw: {item.rawCount} / {item.target} | Normalized:{" "}
+                          {item.normalizedCount}
+                        </p>
+                      </div>
+
+                      <span
+                        className={
+                          item.isReady ? "dataset-badge ready" : "dataset-badge"
+                        }
+                      >
+                        {item.isReady ? "Hazir" : `${item.remaining} eksik`}
+                      </span>
+                    </div>
+
+                    <div className="dataset-progress">
+                      <div
+                        className="dataset-progress-fill"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+
+                    <div className="variant-list">
+                      {item.variants.map((variant) => {
+                        const variantPercent = Math.min(
+                          (variant.rawCount / variant.target) * 100,
+                          100
+                        );
+
+                        return (
+                          <div className="variant-item" key={variant.id}>
+                            <div className="variant-item-header">
+                              <div>
+                                <strong>{variant.title}</strong>
+                                <p>
+                                  {variant.rawCount} / {variant.target} raw |{" "}
+                                  {variant.normalizedCount} normalized
+                                </p>
+                              </div>
+
+                              <span
+                                className={
+                                  variant.isReady
+                                    ? "dataset-badge ready"
+                                    : "dataset-badge"
+                                }
+                              >
+                                {variant.isReady ? "Hazir" : `${variant.remaining} eksik`}
+                              </span>
+                            </div>
+
+                            <div className="dataset-progress small">
+                              <div
+                                className="dataset-progress-fill"
+                                style={{ width: `${variantPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
 
       <section className="card">
