@@ -22,6 +22,7 @@ DATA_DIR = BASE_DIR / "data"
 LESSONS_FILE = DATA_DIR / "lessons.json"
 SCENARIOS_FILE = DATA_DIR / "scenarios.json"
 PROGRESS_FILE = DATA_DIR / "user_progress.json"
+UNITS_FILE = DATA_DIR / "units.json"
 
 
 def read_json(file_path: Path):
@@ -42,7 +43,9 @@ def normalize_progress(progress):
     progress.setdefault("streak", 0)
     progress.setdefault("completedLessons", [])
     progress.setdefault("completedScenarios", [])
+    progress.setdefault("completedUnitLessons", [])
     progress.setdefault("speedTestsCompleted", 0)
+    progress.setdefault("cameraPracticesCompleted", 0)
     progress.setdefault("badges", [])
     return progress
 
@@ -51,6 +54,15 @@ def find_item_by_id(items, item_id):
     for item in items:
         if item["id"] == item_id:
             return item
+
+    return None
+
+
+def find_lesson_in_units(units, lesson_id):
+    for unit in units:
+        for lesson in unit["lessons"]:
+            if lesson["id"] == lesson_id:
+                return lesson
 
     return None
 
@@ -75,10 +87,62 @@ def get_scenarios():
 
 @app.get("/progress")
 def get_progress():
-    progress = read_json(PROGRESS_FILE)
-    progress = normalize_progress(progress)
+    progress = normalize_progress(read_json(PROGRESS_FILE))
     write_json(PROGRESS_FILE, progress)
     return progress
+
+
+@app.get("/units")
+def get_units():
+    return read_json(UNITS_FILE)
+
+
+@app.get("/units/{unit_id}")
+def get_unit(unit_id: int):
+    units = read_json(UNITS_FILE)
+    selected_unit = find_item_by_id(units, unit_id)
+
+    if selected_unit is None:
+        raise HTTPException(status_code=404, detail="Unit not found")
+
+    return selected_unit
+
+
+@app.get("/lesson-flow/{lesson_id}")
+def get_lesson_flow(lesson_id: int):
+    units = read_json(UNITS_FILE)
+    selected_lesson = find_lesson_in_units(units, lesson_id)
+
+    if selected_lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson flow not found")
+
+    return selected_lesson
+
+
+@app.post("/complete-lesson-flow/{lesson_id}")
+def complete_lesson_flow(lesson_id: int):
+    units = read_json(UNITS_FILE)
+    progress = normalize_progress(read_json(PROGRESS_FILE))
+
+    selected_lesson = find_lesson_in_units(units, lesson_id)
+
+    if selected_lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson flow not found")
+
+    if lesson_id not in progress["completedUnitLessons"]:
+        progress["completedUnitLessons"].append(lesson_id)
+        progress["xp"] += selected_lesson.get("xp", 0)
+
+        if "ilk_unite_dersi" not in progress["badges"]:
+            progress["badges"].append("ilk_unite_dersi")
+
+    write_json(PROGRESS_FILE, progress)
+
+    return {
+        "message": "Lesson flow completed",
+        "lesson": selected_lesson,
+        "progress": progress
+    }
 
 
 @app.post("/complete-lesson/{lesson_id}")

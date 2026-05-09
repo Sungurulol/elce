@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "title": "Temel Ifadeler",
+    "description": "Gunluk iletisimde kullanilan temel Turk Isaret Dili ifadeleri.",
+    "isLocked": false,
+    "lessons": [
+      {
+        "id": 101,
+        "title": "Merhaba",
+        "description": "Selamlama icin kullanilan temel ifade.",
+        "xp": 20,
+        "exercises": [
+          {
+            "id": 1,
+            "type": "learn",
+            "title": "Merhaba isareti",
+            "prompt": "Bu derste 'Merhaba' ifadesini ogreniyorsun.",
+            "content": "Merhaba, gunluk iletisimde selam vermek icin kullanilan temel ifadelerden biridir.",
+            "answer": "Merhaba"
+          },
+          {
+            "id": 2,
+            "type": "multiple_choice",
+            "title": "Anlam testi",
+            "question": "Bu isaret hangi anlama gelir?",
+            "options": ["Tesekkurler", "Merhaba", "Yardim", "Hayir"],
+            "answer": "Merhaba"
+          },
+          {
+            "id": 3,
+            "type": "camera",
+            "title": "Kamera pratigi",
+            "prompt": "'Merhaba' isaretini kameraya goster.",
+            "expectedGesture": "merhaba"
+          }
+        ]
+      },
+      {
+        "id": 102,
+        "title": "Tesekkurler",
+        "description": "Minnettarlik ifade etmek icin kullanilir.",
+        "xp": 20,
+        "exercises": [
+          {
+            "id": 1,
+            "type": "learn",
+            "title": "Tesekkurler isareti",
+            "prompt": "Bu derste 'Tesekkurler' ifadesini ogreniyorsun.",
+            "content": "Tesekkurler, minnettarlik gostermek icin kullanilan temel ifadelerden biridir.",
+            "answer": "Tesekkurler"
+          },
+          {
+            "id": 2,
+            "type": "multiple_choice",
+            "title": "Anlam testi",
+            "question": "Birine minnettarlik gostermek icin hangi ifade kullanilir?",
+            "options": ["Merhaba", "Tesekkurler", "Polis", "Su"],
+            "answer": "Tesekkurler"
+          },
+          {
+            "id": 3,
+            "type": "camera",
+            "title": "Kamera pratigi",
+            "prompt": "'Tesekkurler' isaretini kameraya goster.",
+            "expectedGesture": "tesekkurler"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Acil Durum",
+    "description": "Acil durumlarda gerekli olabilecek temel isaretler.",
+    "isLocked": false,
+    "lessons": [
+      {
+        "id": 201,
+        "title": "Yardim",
+        "description": "Acil durumda yardim istemek icin kullanilir.",
+        "xp": 25,
+        "exercises": [
+          {
+            "id": 1,
+            "type": "learn",
+            "title": "Yardim isareti",
+            "prompt": "Bu derste 'Yardim' ifadesini ogreniyorsun.",
+            "content": "Yardim ifadesi, acil durumlarda iletisim kurmak icin kritik bir isarettir.",
+            "answer": "Yardim"
+          },
+          {
+            "id": 2,
+            "type": "multiple_choice",
+            "title": "Anlam testi",
+            "question": "Acil durumda en onemli ifadelerden biri hangisidir?",
+            "options": ["Yardim", "Renk", "Okul", "Oyun"],
+            "answer": "Yardim"
+          },
+          {
+            "id": 3,
+            "type": "camera",
+            "title": "Kamera pratigi",
+            "prompt": "'Yardim' isaretini kameraya goster.",
+            "expectedGesture": "yardim"
+          }
+        ]
+      },
+      {
+        "id": 202,
+        "title": "Hastane",
+        "description": "Saglikla ilgili durumlarda kullanilir.",
+        "xp": 25,
+        "exercises": [
+          {
+            "id": 1,
+            "type": "learn",
+            "title": "Hastane isareti",
+            "prompt": "Bu derste 'Hastane' ifadesini ogreniyorsun.",
+            "content": "Hastane ifadesi, saglik sorunlari veya tibbi yardim gerektiren durumlarda kullanilir.",
+            "answer": "Hastane"
+          },
+          {
+            "id": 2,
+            "type": "multiple_choice",
+            "title": "Anlam testi",
+            "question": "Saglik sorunu yasayan biri icin hangi ifade onemlidir?",
+            "options": ["Hastane", "Oyun", "Renk", "Ailem"],
+            "answer": "Hastane"
+          },
+          {
+            "id": 3,
+            "type": "camera",
+            "title": "Kamera pratigi",
+            "prompt": "'Hastane' isaretini kameraya goster.",
+            "expectedGesture": "hastane"
+          }
+        ]
+      }
+    ]
+  }
+]
