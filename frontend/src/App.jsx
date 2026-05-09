@@ -8,6 +8,8 @@ function App() {
   const [scenarios, setScenarios] = useState([]);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState("");
+  const [speedQuestion, setSpeedQuestion] = useState(null);
+  const [speedResult, setSpeedResult] = useState("");
 
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, options);
@@ -61,6 +63,42 @@ function App() {
     }
   }
 
+  function startSpeedTest() {
+    if (lessons.length === 0) {
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * lessons.length);
+    setSpeedQuestion(lessons[randomIndex]);
+    setSpeedResult("");
+  }
+
+  async function answerSpeedTest(option) {
+    if (!speedQuestion) {
+      return;
+    }
+
+    if (option !== speedQuestion.answer) {
+      setSpeedResult("Yanlis cevap. Tekrar dene.");
+      return;
+    }
+
+    try {
+      const result = await fetchJson(
+        `${API_URL}/complete-speed-test/${speedQuestion.id}`,
+        {
+          method: "POST",
+        }
+      );
+
+      setProgress(result.progress);
+      setSpeedResult("Dogru cevap. +10 XP kazandin.");
+      setSpeedQuestion(null);
+    } catch (err) {
+      setError("Hiz testi istegi basarisiz oldu.");
+    }
+  }
+
   useEffect(() => {
     loadData();
   }, []);
@@ -71,7 +109,7 @@ function App() {
         <section className="card error-card">
           <h1>Baglanti hatasi</h1>
           <p>{error}</p>
-          <code>uvicorn backend.main:app --reload</code>
+          <code>python -m uvicorn backend.main:app --reload</code>
         </section>
       </main>
     );
@@ -87,6 +125,21 @@ function App() {
     );
   }
 
+  const dailyGoals = [
+    {
+      title: "1 ders tamamla",
+      done: progress.completedLessons.length > 0,
+    },
+    {
+      title: "1 senaryo tamamla",
+      done: progress.completedScenarios.length > 0,
+    },
+    {
+      title: "1 hiz testi coz",
+      done: progress.speedTestsCompleted > 0,
+    },
+  ];
+
   return (
     <main className="container">
       <section className="card hero-card">
@@ -94,8 +147,8 @@ function App() {
           <p className="eyebrow">Elce MVP</p>
           <h1>Turk Isaret Dili mikro-ogrenme uygulamasi</h1>
           <p className="hero-text">
-            Gunluk dersler, senaryo tabanli egitimler ve oyunlastirilmis
-            ilerleme sistemi.
+            Gunluk dersler, senaryo tabanli egitimler, hiz testi ve
+            oyunlastirilmis ilerleme sistemi.
           </p>
         </div>
 
@@ -115,6 +168,58 @@ function App() {
             <strong>{progress.badges.length}</strong>
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <p className="eyebrow">Gunluk Hedef</p>
+        <h2>Bugunku gorevler</h2>
+
+        <div className="goal-list">
+          {dailyGoals.map((goal) => (
+            <div className="goal-item" key={goal.title}>
+              <span className={goal.done ? "goal-check done" : "goal-check"}>
+                {goal.done ? "✓" : ""}
+              </span>
+              <p>{goal.title}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Hiz Testi</p>
+            <h2>Bilgini hizli test et</h2>
+          </div>
+
+          <span>{progress.speedTestsCompleted} test</span>
+        </div>
+
+        {!speedQuestion ? (
+          <div className="speed-start">
+            <p>
+              Rastgele bir ders sorusu gelir. Dogru cevap verirsen +10 XP
+              kazanirsin.
+            </p>
+            <button onClick={startSpeedTest}>Hiz Testi Baslat</button>
+            {speedResult && <strong className="speed-result">{speedResult}</strong>}
+          </div>
+        ) : (
+          <div className="speed-question">
+            <h3>{speedQuestion.question}</h3>
+
+            <div className="speed-options">
+              {speedQuestion.options.map((option) => (
+                <button key={option} onClick={() => answerSpeedTest(option)}>
+                  {option}
+                </button>
+              ))}
+            </div>
+
+            {speedResult && <strong className="speed-result">{speedResult}</strong>}
+          </div>
+        )}
       </section>
 
       <section className="card">

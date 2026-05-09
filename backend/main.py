@@ -37,6 +37,24 @@ def write_json(file_path: Path, data):
         json.dump(data, file, ensure_ascii=False, indent=2)
 
 
+def normalize_progress(progress):
+    progress.setdefault("xp", 0)
+    progress.setdefault("streak", 0)
+    progress.setdefault("completedLessons", [])
+    progress.setdefault("completedScenarios", [])
+    progress.setdefault("speedTestsCompleted", 0)
+    progress.setdefault("badges", [])
+    return progress
+
+
+def find_item_by_id(items, item_id):
+    for item in items:
+        if item["id"] == item_id:
+            return item
+
+    return None
+
+
 @app.get("/")
 def home():
     return {
@@ -57,20 +75,18 @@ def get_scenarios():
 
 @app.get("/progress")
 def get_progress():
-    return read_json(PROGRESS_FILE)
+    progress = read_json(PROGRESS_FILE)
+    progress = normalize_progress(progress)
+    write_json(PROGRESS_FILE, progress)
+    return progress
 
 
 @app.post("/complete-lesson/{lesson_id}")
 def complete_lesson(lesson_id: int):
     lessons = read_json(LESSONS_FILE)
-    progress = read_json(PROGRESS_FILE)
+    progress = normalize_progress(read_json(PROGRESS_FILE))
 
-    selected_lesson = None
-
-    for lesson in lessons:
-        if lesson["id"] == lesson_id:
-            selected_lesson = lesson
-            break
+    selected_lesson = find_item_by_id(lessons, lesson_id)
 
     if selected_lesson is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -94,14 +110,9 @@ def complete_lesson(lesson_id: int):
 @app.post("/complete-scenario/{scenario_id}")
 def complete_scenario(scenario_id: int):
     scenarios = read_json(SCENARIOS_FILE)
-    progress = read_json(PROGRESS_FILE)
+    progress = normalize_progress(read_json(PROGRESS_FILE))
 
-    selected_scenario = None
-
-    for scenario in scenarios:
-        if scenario["id"] == scenario_id:
-            selected_scenario = scenario
-            break
+    selected_scenario = find_item_by_id(scenarios, scenario_id)
 
     if selected_scenario is None:
         raise HTTPException(status_code=404, detail="Scenario not found")
@@ -119,5 +130,31 @@ def complete_scenario(scenario_id: int):
     return {
         "message": "Scenario completed",
         "scenario": selected_scenario,
+        "progress": progress
+    }
+
+
+@app.post("/complete-speed-test/{lesson_id}")
+def complete_speed_test(lesson_id: int):
+    lessons = read_json(LESSONS_FILE)
+    progress = normalize_progress(read_json(PROGRESS_FILE))
+
+    selected_lesson = find_item_by_id(lessons, lesson_id)
+
+    if selected_lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    progress["speedTestsCompleted"] += 1
+    progress["xp"] += 10
+
+    if "hiz_testi" not in progress["badges"]:
+        progress["badges"].append("hiz_testi")
+
+    write_json(PROGRESS_FILE, progress)
+
+    return {
+        "message": "Speed test completed",
+        "lesson": selected_lesson,
+        "earnedXp": 10,
         "progress": progress
     }
