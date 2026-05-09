@@ -28,6 +28,26 @@ PROGRESS_FILE = DATA_DIR / "user_progress.json"
 UNITS_FILE = DATA_DIR / "units.json"
 GESTURE_SAMPLES_FILE = DATA_DIR / "gesture_samples.json"
 GESTURE_SEQUENCES_FILE = DATA_DIR / "gesture_sequences.json"
+NORMALIZED_SEQUENCES_FILE = DATA_DIR / "normalized_sequences.json"
+
+
+TARGET_FRAME_COUNT = 60
+MAX_HANDS = 2
+HAND_LANDMARK_COUNT = 21
+MOUTH_LANDMARK_COUNT = 40
+
+BLENDSHAPE_NAMES = [
+    "jawOpen",
+    "mouthClose",
+    "mouthFunnel",
+    "mouthPucker",
+    "mouthLeft",
+    "mouthRight",
+    "mouthSmileLeft",
+    "mouthSmileRight",
+    "mouthFrownLeft",
+    "mouthFrownRight",
+]
 
 
 class GestureSample(BaseModel):
@@ -92,6 +112,156 @@ def find_lesson_in_units(units, lesson_id):
                 return lesson
 
     return None
+
+
+def safe_float(value):
+    if value is None:
+        return 0.0
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def point_to_vector(point):
+    return [
+        safe_float(point.get("x")),
+        safe_float(point.get("y")),
+        safe_float(point.get("z")),
+    ]
+
+
+def normalize_hand_landmarks(hand):
+    landmarks = hand.get("landmarks", [])
+
+    vector = []
+
+    for index in range(HAND_LANDMARK_COUNT):
+        if index < len(landmarks):
+            vector.extend(point_to_vector(landmarks[index]))
+        else:
+            vector.extend([0.0, 0.0, 0.0])
+
+    return vector
+
+
+def normalize_hands(frame):
+    hands = frame.get("hands", [])
+
+    vector = []
+
+    for hand_index in range(MAX_HANDS):
+        if hand_index < len(hands):
+            vector.extend(normalize_hand_landmarks(hands[hand_index]))
+        else:
+            vector.extend([0.0] * HAND_LANDMARK_COUNT * 3)
+
+    return vector
+
+
+def normalize_mouth_landmarks(frame):
+    face = frame.get("face") or {}
+    mouth_landmarks = face.get("mouthLandmarks", [])
+
+    vector = []
+
+    for index in range(MOUTH_LANDMARK_COUNT):
+        if index < len(mouth_landmarks):
+            vector.extend(point_to_vector(mouth_landmarks[index]))
+        else:
+            vector.extend([0.0, 0.0, 0.0])
+
+    return vector
+
+
+def normalize_blendshapes(frame):
+    face = frame.get("face") or {}
+    blendshapes = face.get("blendshapes", [])
+
+    score_map = {}
+
+    for item in blendshapes:
+        name = item.get("name")
+        score = safe_float(item.get("score"))
+
+        if name:
+            score_map[name] = score
+
+    return [score_map.get(name, 0.0) for name in BLENDSHAPE_NAMES]
+
+
+def normalize_single_frame(frame):
+    hand_vector = normalize_hands(frame)
+    mouth_vector = normalize_mouth_landmarks(frame)
+    blendshape_vector = normalize_blendshapes(frame)
+
+    return {
+        "timestampMs": int(frame.get("timestampMs", 0)),
+        "handCount": int(frame.get("handCount", 0)),
+        "faceDetected": bool((frame.get("face") or {}).get("detected", False)),
+        "features": hand_vector + mouth_vector + blendshape_vector,
+    }
+
+
+def resample_frames(frames, target_count=TARGET_FRAME_COUNT):
+    if not frames:
+        empty_frame = {
+            "timestampMs": 0,
+            "handCount": 0,
+            "hands": [],
+            "face": {
+                "detected": False,
+                "landmarkCount": 0,
+                "mouthLandmarks": [],
+                "blendshapes": [],
+            },
+        }
+
+        return [empty_frame for _ in range(target_count)]
+
+    if len(frames) == target_count:
+        return frames
+
+    if len(frames) == 1:
+        return [frames[0] for _ in range(target_count)]
+
+    sampled = []
+
+    for target_index in range(target_count):
+        source_index = round(target_index * (len(frames) - 1) / (target_count - 1))
+        sampled.append(frames[source_index])
+
+    return sampled
+
+
+def normalize_sequence(sequence):
+    raw_frames = sequence.get("frames", [])
+    sampled_frames = resample_frames(raw_frames, TARGET_FRAME_COUNT)
+    normalized_frames = [normalize_single_frame(frame) for frame in sampled_frames]
+
+    feature_length = 0
+
+    if normalized_frames:
+        feature_length = len(normalized_frames[0]["features"])
+
+    return {
+        "id": sequence.get("id"),
+        "label": sequence.get("label"),
+        "lessonId": sequence.get("lessonId"),
+        "expectedHands": sequence.get("expectedHands"),
+        "sourceFrameCount": sequence.get("frameCount", len(raw_frames)),
+        "targetFrameCount": TARGET_FRAME_COUNT,
+        "featureLength": feature_length,
+        "featureSchema": {
+            "maxHands": MAX_HANDS,
+            "handLandmarksPerHand": HAND_LANDMARK_COUNT,
+            "mouthLandmarkCount": MOUTH_LANDMARK_COUNT,
+            "blendshapeNames": BLENDSHAPE_NAMES,
+        },
+        "frames": normalized_frames,
+        "createdAt": datetime.now().isoformat(),
+    }
 
 
 @app.get("/")
@@ -325,4 +495,39 @@ def create_gesture_sequence(sequence: GestureSequence):
         "message": "Gesture sequence saved",
         "sequence": new_sequence,
         "count": len(sequences)
+    }
+
+
+@app.get("/normalized-sequences")
+def get_normalized_sequences():
+    ensure_json_file(NORMALIZED_SEQUENCES_FILE, [])
+
+    normalized_sequences = read_json(NORMALIZED_SEQUENCES_FILE)
+
+    return {
+        "count": len(normalized_sequences),
+        "targetFrameCount": TARGET_FRAME_COUNT,
+        "sequences": normalized_sequences,
+    }
+
+
+@app.post("/normalize-sequences")
+def normalize_sequences():
+    ensure_json_file(GESTURE_SEQUENCES_FILE, [])
+    ensure_json_file(NORMALIZED_SEQUENCES_FILE, [])
+
+    raw_sequences = read_json(GESTURE_SEQUENCES_FILE)
+
+    normalized_sequences = [
+        normalize_sequence(sequence)
+        for sequence in raw_sequences
+    ]
+
+    write_json(NORMALIZED_SEQUENCES_FILE, normalized_sequences)
+
+    return {
+        "message": "Sequences normalized",
+        "sourceCount": len(raw_sequences),
+        "normalizedCount": len(normalized_sequences),
+        "targetFrameCount": TARGET_FRAME_COUNT,
     }
