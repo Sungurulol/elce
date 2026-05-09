@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Data / models
+ai-lab/data/raw_landmarks/
+ai-lab/data/processed/
+ai-lab/models/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
