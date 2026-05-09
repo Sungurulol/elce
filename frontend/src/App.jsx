@@ -15,12 +15,12 @@ function App() {
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("");
+
   const [handStatus, setHandStatus] = useState({
     ready: false,
     detected: false,
     handCount: 0,
-    handedness: "-",
-    landmarkCount: 0,
+    hands: [],
   });
 
   const videoRef = useRef(null);
@@ -144,8 +144,7 @@ function App() {
       ready: Boolean(handLandmarkerRef.current),
       detected: false,
       handCount: 0,
-      handedness: "-",
-      landmarkCount: 0,
+      hands: [],
     });
   }
 
@@ -210,25 +209,34 @@ function App() {
       const results = handLandmarker.detectForVideo(video, nowInMs);
 
       const handCount = results.landmarks ? results.landmarks.length : 0;
-      const firstHandLandmarks = handCount > 0 ? results.landmarks[0] : [];
-      const landmarkCount = firstHandLandmarks.length;
+      const hands = [];
 
-      let handedness = "-";
+      for (let i = 0; i < handCount; i++) {
+        let handedness = "-";
+        let score = 0;
 
-      if (
-        results.handedness &&
-        results.handedness.length > 0 &&
-        results.handedness[0].length > 0
-      ) {
-        handedness = results.handedness[0][0].categoryName;
+        if (
+          results.handedness &&
+          results.handedness[i] &&
+          results.handedness[i].length > 0
+        ) {
+          handedness = results.handedness[i][0].categoryName;
+          score = results.handedness[i][0].score;
+        }
+
+        hands.push({
+          index: i + 1,
+          handedness,
+          score,
+          landmarkCount: results.landmarks[i].length,
+        });
       }
 
       setHandStatus({
         ready: true,
         detected: handCount > 0,
         handCount,
-        handedness,
-        landmarkCount,
+        hands,
       });
 
       animationFrameRef.current = requestAnimationFrame(detectFrame);
@@ -398,6 +406,7 @@ function App() {
 
                 <div className="ai-status-box">
                   <p className="eyebrow">AI Durumu</p>
+
                   <h3>
                     {handStatus.detected
                       ? "El algilandi. Landmark takibi calisiyor."
@@ -409,22 +418,43 @@ function App() {
                       <span>Model</span>
                       <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
                     </div>
+
                     <div>
                       <span>El</span>
                       <strong>{handStatus.detected ? "Var" : "Yok"}</strong>
                     </div>
+
                     <div>
                       <span>El sayisi</span>
                       <strong>{handStatus.handCount}</strong>
                     </div>
-                    <div>
-                      <span>Sag/Sol</span>
-                      <strong>{handStatus.handedness}</strong>
-                    </div>
-                    <div>
-                      <span>Landmark</span>
-                      <strong>{handStatus.landmarkCount}</strong>
-                    </div>
+                  </div>
+
+                  <div className="hand-list">
+                    {handStatus.hands.length === 0 ? (
+                      <p>Henuz el algilanmadi.</p>
+                    ) : (
+                      handStatus.hands.map((hand) => (
+                        <div className="hand-card" key={hand.index}>
+                          <p className="eyebrow">El {hand.index}</p>
+
+                          <div className="hand-card-row">
+                            <span>Sag/Sol</span>
+                            <strong>{hand.handedness}</strong>
+                          </div>
+
+                          <div className="hand-card-row">
+                            <span>Landmark</span>
+                            <strong>{hand.landmarkCount}</strong>
+                          </div>
+
+                          <div className="hand-card-row">
+                            <span>Guven</span>
+                            <strong>{Math.round(hand.score * 100)}%</strong>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   <p>

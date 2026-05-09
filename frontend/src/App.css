@@ -485,3 +485,35 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.hand-list {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.hand-card {
+  background: white;
+  border: 1px solid #e4e8f0;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.hand-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #e4e8f0;
+}
+
+.hand-card-row span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.hand-card-row strong {
+  color: #172033;
+}
