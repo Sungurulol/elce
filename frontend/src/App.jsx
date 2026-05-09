@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -14,9 +15,18 @@ function App() {
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("");
+  const [handStatus, setHandStatus] = useState({
+    ready: false,
+    detected: false,
+    handCount: 0,
+    handedness: "-",
+    landmarkCount: 0,
+  });
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const handLandmarkerRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, options);
@@ -41,6 +51,35 @@ function App() {
     }
   }
 
+  async function setupHandLandmarker() {
+    if (handLandmarkerRef.current) {
+      return;
+    }
+
+    setCameraStatus("El algilama modeli yukleniyor...");
+
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+
+    handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numHands: 2,
+    });
+
+    setHandStatus((prev) => ({
+      ...prev,
+      ready: true,
+    }));
+
+    setCameraStatus("El algilama modeli hazir.");
+  }
+
   async function openLesson(lessonId) {
     try {
       const lessonData = await fetchJson(`${API_URL}/lesson-flow/${lessonId}`);
@@ -50,6 +89,7 @@ function App() {
       setSelectedOption("");
       setFeedback("");
       setCameraStatus("");
+      resetHandStatus();
       stopCamera();
     } catch (err) {
       setError("Ders akisi yuklenemedi.");
@@ -63,6 +103,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    resetHandStatus();
   }
 
   function goNextExercise() {
@@ -83,6 +124,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    resetHandStatus();
   }
 
   function checkMultipleChoice(option) {
@@ -97,8 +139,20 @@ function App() {
     }
   }
 
+  function resetHandStatus() {
+    setHandStatus({
+      ready: Boolean(handLandmarkerRef.current),
+      detected: false,
+      handCount: 0,
+      handedness: "-",
+      landmarkCount: 0,
+    });
+  }
+
   async function startCamera() {
     try {
+      await setupHandLandmarker();
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: false,
@@ -108,26 +162,88 @@ function App() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-      }
 
-      setCameraActive(true);
-      setCameraStatus("Kamera acildi. Isareti kameraya net sekilde goster.");
+        videoRef.current.onloadeddata = () => {
+          setCameraActive(true);
+          setCameraStatus("Kamera acildi. Elini kameraya net sekilde goster.");
+          startHandDetectionLoop();
+        };
+      }
     } catch (err) {
-      setCameraStatus("Kamera acilamadi. Tarayici kamera iznini kontrol et.");
+      setCameraStatus("Kamera veya el algilama baslatilamadi.");
     }
   }
 
   function stopCamera() {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
     setCameraActive(false);
   }
 
+  function startHandDetectionLoop() {
+    if (!videoRef.current || !handLandmarkerRef.current) {
+      return;
+    }
+
+    const detectFrame = () => {
+      const video = videoRef.current;
+      const handLandmarker = handLandmarkerRef.current;
+
+      if (!video || !handLandmarker || video.readyState < 2) {
+        animationFrameRef.current = requestAnimationFrame(detectFrame);
+        return;
+      }
+
+      const nowInMs = performance.now();
+      const results = handLandmarker.detectForVideo(video, nowInMs);
+
+      const handCount = results.landmarks ? results.landmarks.length : 0;
+      const firstHandLandmarks = handCount > 0 ? results.landmarks[0] : [];
+      const landmarkCount = firstHandLandmarks.length;
+
+      let handedness = "-";
+
+      if (
+        results.handedness &&
+        results.handedness.length > 0 &&
+        results.handedness[0].length > 0
+      ) {
+        handedness = results.handedness[0][0].categoryName;
+      }
+
+      setHandStatus({
+        ready: true,
+        detected: handCount > 0,
+        handCount,
+        handedness,
+        landmarkCount,
+      });
+
+      animationFrameRef.current = requestAnimationFrame(detectFrame);
+    };
+
+    detectFrame();
+  }
+
   function acceptCameraExercise() {
-    setFeedback("Hareket alindi. AI kontrolu sonraki adimda baglanacak.");
+    if (!handStatus.detected) {
+      setFeedback("El algilanmadi. Elini kameraya daha net goster.");
+      return;
+    }
+
+    setFeedback("El algilandi. AI hareket siniflandirma sonraki adimda.");
     setCameraStatus("Kamera egzersizi tamamlandi.");
     stopCamera();
   }
@@ -156,9 +272,7 @@ function App() {
     loadData();
 
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
+      stopCamera();
     };
   }, []);
 
@@ -285,10 +399,34 @@ function App() {
                 <div className="ai-status-box">
                   <p className="eyebrow">AI Durumu</p>
                   <h3>
-                    {cameraActive
-                      ? "Kamera hazir. Model sonraki adimda baglanacak."
-                      : "Kamera henuz acilmadi."}
+                    {handStatus.detected
+                      ? "El algilandi. Landmark takibi calisiyor."
+                      : "El bekleniyor."}
                   </h3>
+
+                  <div className="hand-debug-grid">
+                    <div>
+                      <span>Model</span>
+                      <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+                    </div>
+                    <div>
+                      <span>El</span>
+                      <strong>{handStatus.detected ? "Var" : "Yok"}</strong>
+                    </div>
+                    <div>
+                      <span>El sayisi</span>
+                      <strong>{handStatus.handCount}</strong>
+                    </div>
+                    <div>
+                      <span>Sag/Sol</span>
+                      <strong>{handStatus.handedness}</strong>
+                    </div>
+                    <div>
+                      <span>Landmark</span>
+                      <strong>{handStatus.landmarkCount}</strong>
+                    </div>
+                  </div>
+
                   <p>
                     Beklenen hareket:{" "}
                     <strong>{currentExercise.expectedGesture}</strong>
@@ -302,12 +440,8 @@ function App() {
                     Kamerayi Kapat
                   </button>
 
-                  <button
-                    className="success-button"
-                    onClick={acceptCameraExercise}
-                    disabled={!cameraActive}
-                  >
-                    Hareketi Yaptim
+                  <button className="success-button" onClick={acceptCameraExercise}>
+                    Hareketi Kontrol Et
                   </button>
                 </div>
 
@@ -319,7 +453,7 @@ function App() {
 
                 <button
                   onClick={goNextExercise}
-                  disabled={!feedback.includes("Hareket alindi")}
+                  disabled={!feedback.includes("El algilandi")}
                 >
                   Dersi Bitir
                 </button>
