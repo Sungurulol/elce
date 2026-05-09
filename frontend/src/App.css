@@ -798,3 +798,35 @@ h2 {
     flex-direction: column;
   }
 }
+
+.pose-debug-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.pose-debug-grid div {
+  background: white;
+  border: 1px solid #e4e8f0;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.pose-debug-grid span {
+  display: block;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.pose-debug-grid strong {
+  color: #172033;
+}
+
+@media (max-width: 760px) {
+  .pose-debug-grid {
+    grid-template-columns: 1fr;
+  }
+}

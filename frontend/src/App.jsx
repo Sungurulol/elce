@@ -3,16 +3,28 @@ import {
   FilesetResolver,
   HandLandmarker,
   FaceLandmarker,
+  PoseLandmarker,
 } from "@mediapipe/tasks-vision";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
+
+const POSE_VISIBILITY_THRESHOLD = 0.55;
 
 const MOUTH_LANDMARK_INDICES = [
   0, 13, 14, 17, 37, 39, 40, 61, 78, 81, 82, 84, 87, 88, 91, 95,
   146, 178, 181, 185, 191, 267, 269, 270, 291, 308, 310, 311, 312,
   314, 317, 318, 321, 324, 375, 402, 405, 409, 415,
 ];
+
+const POSE_LANDMARK_INDICES = {
+  leftShoulder: 11,
+  rightShoulder: 12,
+  leftElbow: 13,
+  rightElbow: 14,
+  leftWrist: 15,
+  rightWrist: 16,
+};
 
 function App() {
   const [units, setUnits] = useState([]);
@@ -52,14 +64,28 @@ function App() {
     blendshapes: [],
   });
 
+  const [poseStatus, setPoseStatus] = useState({
+    ready: false,
+    detected: false,
+    landmarkCount: 0,
+    leftShoulder: false,
+    rightShoulder: false,
+    leftElbow: false,
+    rightElbow: false,
+    leftWrist: false,
+    rightWrist: false,
+  });
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const handLandmarkerRef = useRef(null);
   const faceLandmarkerRef = useRef(null);
+  const poseLandmarkerRef = useRef(null);
   const animationFrameRef = useRef(null);
 
   const latestHandsRef = useRef([]);
   const latestFaceRef = useRef(null);
+  const latestPoseRef = useRef(null);
 
   const sequenceFramesRef = useRef([]);
   const isRecordingSequenceRef = useRef(false);
@@ -197,6 +223,35 @@ function App() {
     setCameraStatus("Yuz algilama modeli hazir.");
   }
 
+  async function setupPoseLandmarker() {
+    if (poseLandmarkerRef.current) {
+      return;
+    }
+
+    setCameraStatus("Pose algilama modeli yukleniyor...");
+
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+
+    poseLandmarkerRef.current = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numPoses: 1,
+    });
+
+    setPoseStatus((prev) => ({
+      ...prev,
+      ready: true,
+    }));
+
+    setCameraStatus("Pose algilama modeli hazir.");
+  }
+
   async function openLesson(lessonId) {
     try {
       const lessonData = await fetchJson(`${API_URL}/lesson-flow/${lessonId}`);
@@ -211,6 +266,7 @@ function App() {
       resetGestureCheck();
       resetHandStatus();
       resetFaceStatus();
+      resetPoseStatus();
       stopCamera();
     } catch (err) {
       setError("Ders akisi yuklenemedi.");
@@ -229,6 +285,7 @@ function App() {
     resetGestureCheck();
     resetHandStatus();
     resetFaceStatus();
+    resetPoseStatus();
   }
 
   function goNextExercise() {
@@ -254,6 +311,7 @@ function App() {
     resetGestureCheck();
     resetHandStatus();
     resetFaceStatus();
+    resetPoseStatus();
   }
 
   function checkMultipleChoice(option) {
@@ -295,6 +353,22 @@ function App() {
     });
   }
 
+  function resetPoseStatus() {
+    latestPoseRef.current = null;
+
+    setPoseStatus({
+      ready: Boolean(poseLandmarkerRef.current),
+      detected: false,
+      landmarkCount: 0,
+      leftShoulder: false,
+      rightShoulder: false,
+      leftElbow: false,
+      rightElbow: false,
+      leftWrist: false,
+      rightWrist: false,
+    });
+  }
+
   function resetGestureCheck() {
     setGestureCheck({
       checked: false,
@@ -307,6 +381,7 @@ function App() {
     try {
       await setupHandLandmarker();
       await setupFaceLandmarker();
+      await setupPoseLandmarker();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -320,7 +395,7 @@ function App() {
 
         videoRef.current.onloadeddata = () => {
           setCameraActive(true);
-          setCameraStatus("Kamera acildi. Elini ve yuzunu kameraya net goster.");
+          setCameraStatus("Kamera acildi. Elini, yuzunu ve ust govdeni kameraya net goster.");
           setSequenceStatus("");
           resetGestureCheck();
           startDetectionLoop();
@@ -404,6 +479,63 @@ function App() {
     return faceData;
   }
 
+  function posePointToData(point) {
+    if (!point) {
+      return null;
+    }
+
+    return {
+      x: point.x,
+      y: point.y,
+      z: point.z,
+      visibility: point.visibility ?? 0,
+    };
+  }
+
+  function isVisiblePosePoint(point) {
+    return Boolean(point && point.visibility >= POSE_VISIBILITY_THRESHOLD);
+  }
+
+  function getPoseData(video, nowInMs) {
+    let poseData = {
+      detected: false,
+      landmarkCount: 0,
+      upperBody: {
+        leftShoulder: null,
+        rightShoulder: null,
+        leftElbow: null,
+        rightElbow: null,
+        leftWrist: null,
+        rightWrist: null,
+      },
+    };
+
+    if (!poseLandmarkerRef.current) {
+      return poseData;
+    }
+
+    const poseResults = poseLandmarkerRef.current.detectForVideo(video, nowInMs);
+
+    if (poseResults.landmarks && poseResults.landmarks.length > 0) {
+      const poseLandmarks = poseResults.landmarks[0];
+
+      poseData = {
+        detected: true,
+        landmarkCount: poseLandmarks.length,
+        upperBody: {
+          leftShoulder: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.leftShoulder]),
+          rightShoulder: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.rightShoulder]),
+          leftElbow: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.leftElbow]),
+          rightElbow: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.rightElbow]),
+          leftWrist: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.leftWrist]),
+          rightWrist: posePointToData(poseLandmarks[POSE_LANDMARK_INDICES.rightWrist]),
+        },
+      };
+    }
+
+    return poseData;
+  }
+
   function startDetectionLoop() {
     if (!videoRef.current || !handLandmarkerRef.current) {
       return;
@@ -422,6 +554,7 @@ function App() {
 
       const handResults = handLandmarker.detectForVideo(video, nowInMs);
       const faceData = getFaceData(video, nowInMs);
+      const poseData = getPoseData(video, nowInMs);
 
       const handCount = handResults.landmarks ? handResults.landmarks.length : 0;
       const hands = [];
@@ -454,6 +587,7 @@ function App() {
 
       latestHandsRef.current = hands;
       latestFaceRef.current = faceData;
+      latestPoseRef.current = poseData;
 
       if (isRecordingSequenceRef.current && sequenceStartTimeRef.current !== null) {
         sequenceFramesRef.current.push({
@@ -461,6 +595,7 @@ function App() {
           handCount,
           hands,
           face: faceData,
+          pose: poseData,
         });
       }
 
@@ -477,6 +612,18 @@ function App() {
         landmarkCount: faceData.landmarkCount,
         mouthLandmarkCount: faceData.mouthLandmarks.length,
         blendshapes: faceData.blendshapes,
+      });
+
+      setPoseStatus({
+        ready: Boolean(poseLandmarkerRef.current),
+        detected: poseData.detected,
+        landmarkCount: poseData.landmarkCount,
+        leftShoulder: isVisiblePosePoint(poseData.upperBody.leftShoulder),
+        rightShoulder: isVisiblePosePoint(poseData.upperBody.rightShoulder),
+        leftElbow: isVisiblePosePoint(poseData.upperBody.leftElbow),
+        rightElbow: isVisiblePosePoint(poseData.upperBody.rightElbow),
+        leftWrist: isVisiblePosePoint(poseData.upperBody.leftWrist),
+        rightWrist: isVisiblePosePoint(poseData.upperBody.rightWrist),
       });
 
       animationFrameRef.current = requestAnimationFrame(detectFrame);
@@ -837,6 +984,48 @@ function App() {
                     <div>
                       <span>Mimik Verisi</span>
                       <strong>{faceStatus.blendshapes.length}</strong>
+                    </div>
+                  </div>
+
+                  <div className="pose-debug-grid">
+                    <div>
+                      <span>Pose Modeli</span>
+                      <strong>{poseStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Pose</span>
+                      <strong>{poseStatus.detected ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sol Omuz</span>
+                      <strong>{poseStatus.leftShoulder ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sag Omuz</span>
+                      <strong>{poseStatus.rightShoulder ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sol Dirsek</span>
+                      <strong>{poseStatus.leftElbow ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sag Dirsek</span>
+                      <strong>{poseStatus.rightElbow ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sol Bilek</span>
+                      <strong>{poseStatus.leftWrist ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Sag Bilek</span>
+                      <strong>{poseStatus.rightWrist ? "Var" : "Yok"}</strong>
                     </div>
                   </div>
 
