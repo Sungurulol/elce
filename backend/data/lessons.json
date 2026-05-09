@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "title": "Merhaba",
+    "category": "Temel",
+    "description": "Selamlama icin kullanilan temel bir Turk Isaret Dili ifadesidir.",
+    "question": "Bu isaret hangi anlama gelir?",
+    "options": ["Tesekkurler", "Merhaba", "Yardim", "Hayir"],
+    "answer": "Merhaba",
+    "xp": 20
+  },
+  {
+    "id": 2,
+    "title": "Tesekkurler",
+    "category": "Temel",
+    "description": "Minnettarlik ifade etmek icin kullanilir.",
+    "question": "Birine minnettarlik gostermek icin hangi ifade kullanilir?",
+    "options": ["Merhaba", "Tesekkurler", "Polis", "Su"],
+    "answer": "Tesekkurler",
+    "xp": 20
+  },
+  {
+    "id": 3,
+    "title": "Yardim",
+    "category": "Acil Durum",
+    "description": "Acil durumlarda yardim istemek icin kullanilir.",
+    "question": "Acil bir durumda en kritik ifadelerden biri hangisidir?",
+    "options": ["Yardim", "Renk", "Okul", "Oyun"],
+    "answer": "Yardim",
+    "xp": 20
+  }
+]

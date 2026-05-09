@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "title": "Acil Durum",
+    "description": "Bir kisi konusamiyor ve yardima ihtiyaci var.",
+    "question": "Bu durumda hangi isaret en onemlidir?",
+    "options": ["Yardim", "Yemek", "Renk", "Kitap"],
+    "answer": "Yardim",
+    "xp": 25
+  },
+  {
+    "id": 2,
+    "title": "Hastane",
+    "description": "Hastanede bir kisi su istedigini anlatmaya calisiyor.",
+    "question": "Bu durumda hangi ifade daha uygundur?",
+    "options": ["Su", "Polis", "Merhaba", "Okul"],
+    "answer": "Su",
+    "xp": 25
+  }
+]
