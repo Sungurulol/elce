@@ -580,3 +580,62 @@ h2 {
   color: #ea580c;
   font-weight: 900;
 }
+
+.face-debug-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.face-debug-grid div {
+  background: white;
+  border: 1px solid #e4e8f0;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.face-debug-grid span {
+  display: block;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.face-debug-grid strong {
+  color: #172033;
+}
+
+@media (max-width: 760px) {
+  .face-debug-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.blendshape-list {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.blendshape-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e4e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.blendshape-row span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.blendshape-row strong {
+  color: #172033;
+}

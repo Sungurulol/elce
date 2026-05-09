@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
+import {
+  FilesetResolver,
+  HandLandmarker,
+  FaceLandmarker,
+} from "@mediapipe/tasks-vision";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
+
+const MOUTH_LANDMARK_INDICES = [
+  0, 13, 14, 17, 37, 39, 40, 61, 78, 81, 82, 84, 87, 88, 91, 95,
+  146, 178, 181, 185, 191, 267, 269, 270, 291, 308, 310, 311, 312,
+  314, 317, 318, 321, 324, 375, 402, 405, 409, 415,
+];
 
 function App() {
   const [units, setUnits] = useState([]);
@@ -31,11 +41,22 @@ function App() {
     hands: [],
   });
 
+  const [faceStatus, setFaceStatus] = useState({
+    ready: false,
+    detected: false,
+    landmarkCount: 0,
+    mouthLandmarkCount: 0,
+    blendshapes: [],
+  });
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const handLandmarkerRef = useRef(null);
+  const faceLandmarkerRef = useRef(null);
   const animationFrameRef = useRef(null);
+
   const latestHandsRef = useRef([]);
+  const latestFaceRef = useRef(null);
 
   const sequenceFramesRef = useRef([]);
   const isRecordingSequenceRef = useRef(false);
@@ -93,6 +114,36 @@ function App() {
     setCameraStatus("El algilama modeli hazir.");
   }
 
+  async function setupFaceLandmarker() {
+    if (faceLandmarkerRef.current) {
+      return;
+    }
+
+    setCameraStatus("Yuz algilama modeli yukleniyor...");
+
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+
+    faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numFaces: 1,
+      outputFaceBlendshapes: true,
+    });
+
+    setFaceStatus((prev) => ({
+      ...prev,
+      ready: true,
+    }));
+
+    setCameraStatus("Yuz algilama modeli hazir.");
+  }
+
   async function openLesson(lessonId) {
     try {
       const lessonData = await fetchJson(`${API_URL}/lesson-flow/${lessonId}`);
@@ -105,6 +156,7 @@ function App() {
       setSequenceStatus("");
       resetGestureCheck();
       resetHandStatus();
+      resetFaceStatus();
       stopCamera();
     } catch (err) {
       setError("Ders akisi yuklenemedi.");
@@ -121,6 +173,7 @@ function App() {
     setSequenceStatus("");
     resetGestureCheck();
     resetHandStatus();
+    resetFaceStatus();
   }
 
   function goNextExercise() {
@@ -144,6 +197,7 @@ function App() {
     setSequenceStatus("");
     resetGestureCheck();
     resetHandStatus();
+    resetFaceStatus();
   }
 
   function checkMultipleChoice(option) {
@@ -173,6 +227,18 @@ function App() {
     });
   }
 
+  function resetFaceStatus() {
+    latestFaceRef.current = null;
+
+    setFaceStatus({
+      ready: Boolean(faceLandmarkerRef.current),
+      detected: false,
+      landmarkCount: 0,
+      mouthLandmarkCount: 0,
+      blendshapes: [],
+    });
+  }
+
   function resetGestureCheck() {
     setGestureCheck({
       checked: false,
@@ -184,6 +250,7 @@ function App() {
   async function startCamera() {
     try {
       await setupHandLandmarker();
+      await setupFaceLandmarker();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -197,14 +264,14 @@ function App() {
 
         videoRef.current.onloadeddata = () => {
           setCameraActive(true);
-          setCameraStatus("Kamera acildi. Elini kameraya net sekilde goster.");
+          setCameraStatus("Kamera acildi. Elini ve yuzunu kameraya net goster.");
           setSequenceStatus("");
           resetGestureCheck();
-          startHandDetectionLoop();
+          startDetectionLoop();
         };
       }
     } catch (err) {
-      setCameraStatus("Kamera veya el algilama baslatilamadi.");
+      setCameraStatus("Kamera veya algilama modelleri baslatilamadi.");
     }
   }
 
@@ -228,7 +295,60 @@ function App() {
     setCameraActive(false);
   }
 
-  function startHandDetectionLoop() {
+  function getFaceData(video, nowInMs) {
+    let faceData = {
+      detected: false,
+      landmarkCount: 0,
+      mouthLandmarks: [],
+      blendshapes: [],
+    };
+
+    if (!faceLandmarkerRef.current) {
+      return faceData;
+    }
+
+    const faceResults = faceLandmarkerRef.current.detectForVideo(video, nowInMs);
+
+    if (faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
+      const faceLandmarks = faceResults.faceLandmarks[0];
+
+      const mouthLandmarks = MOUTH_LANDMARK_INDICES
+        .filter((index) => faceLandmarks[index])
+        .map((index) => ({
+          index,
+          x: faceLandmarks[index].x,
+          y: faceLandmarks[index].y,
+          z: faceLandmarks[index].z,
+        }));
+
+      let blendshapes = [];
+
+      if (
+        faceResults.faceBlendshapes &&
+        faceResults.faceBlendshapes.length > 0 &&
+        faceResults.faceBlendshapes[0].categories
+      ) {
+        blendshapes = faceResults.faceBlendshapes[0].categories
+          .map((item) => ({
+            name: item.categoryName,
+            score: item.score,
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+      }
+
+      faceData = {
+        detected: true,
+        landmarkCount: faceLandmarks.length,
+        mouthLandmarks,
+        blendshapes,
+      };
+    }
+
+    return faceData;
+  }
+
+  function startDetectionLoop() {
     if (!videoRef.current || !handLandmarkerRef.current) {
       return;
     }
@@ -243,9 +363,11 @@ function App() {
       }
 
       const nowInMs = performance.now();
-      const results = handLandmarker.detectForVideo(video, nowInMs);
 
-      const handCount = results.landmarks ? results.landmarks.length : 0;
+      const handResults = handLandmarker.detectForVideo(video, nowInMs);
+      const faceData = getFaceData(video, nowInMs);
+
+      const handCount = handResults.landmarks ? handResults.landmarks.length : 0;
       const hands = [];
 
       for (let i = 0; i < handCount; i++) {
@@ -253,20 +375,20 @@ function App() {
         let score = 0;
 
         if (
-          results.handedness &&
-          results.handedness[i] &&
-          results.handedness[i].length > 0
+          handResults.handedness &&
+          handResults.handedness[i] &&
+          handResults.handedness[i].length > 0
         ) {
-          handedness = results.handedness[i][0].categoryName;
-          score = results.handedness[i][0].score;
+          handedness = handResults.handedness[i][0].categoryName;
+          score = handResults.handedness[i][0].score;
         }
 
         hands.push({
           index: i + 1,
           handedness,
           score,
-          landmarkCount: results.landmarks[i].length,
-          landmarks: results.landmarks[i].map((point) => ({
+          landmarkCount: handResults.landmarks[i].length,
+          landmarks: handResults.landmarks[i].map((point) => ({
             x: point.x,
             y: point.y,
             z: point.z,
@@ -275,12 +397,14 @@ function App() {
       }
 
       latestHandsRef.current = hands;
+      latestFaceRef.current = faceData;
 
       if (isRecordingSequenceRef.current && sequenceStartTimeRef.current !== null) {
         sequenceFramesRef.current.push({
           timestampMs: Math.round(performance.now() - sequenceStartTimeRef.current),
           handCount,
           hands,
+          face: faceData,
         });
       }
 
@@ -289,6 +413,14 @@ function App() {
         detected: handCount > 0,
         handCount,
         hands,
+      });
+
+      setFaceStatus({
+        ready: Boolean(faceLandmarkerRef.current),
+        detected: faceData.detected,
+        landmarkCount: faceData.landmarkCount,
+        mouthLandmarkCount: faceData.mouthLandmarks.length,
+        blendshapes: faceData.blendshapes,
       });
 
       animationFrameRef.current = requestAnimationFrame(detectFrame);
@@ -582,7 +714,7 @@ function App() {
 
                   <div className="hand-debug-grid">
                     <div>
-                      <span>Model</span>
+                      <span>El Modeli</span>
                       <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
                     </div>
 
@@ -595,6 +727,46 @@ function App() {
                       <span>El sayisi</span>
                       <strong>{handStatus.handCount}</strong>
                     </div>
+                  </div>
+
+                  <div className="face-debug-grid">
+                    <div>
+                      <span>Yuz Modeli</span>
+                      <strong>{faceStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Yuz</span>
+                      <strong>{faceStatus.detected ? "Var" : "Yok"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Yuz Landmark</span>
+                      <strong>{faceStatus.landmarkCount}</strong>
+                    </div>
+
+                    <div>
+                      <span>Agiz Noktasi</span>
+                      <strong>{faceStatus.mouthLandmarkCount}</strong>
+                    </div>
+
+                    <div>
+                      <span>Mimik Verisi</span>
+                      <strong>{faceStatus.blendshapes.length}</strong>
+                    </div>
+                  </div>
+
+                  <div className="blendshape-list">
+                    {faceStatus.blendshapes.length === 0 ? (
+                      <p>Henuz mimik verisi yok.</p>
+                    ) : (
+                      faceStatus.blendshapes.slice(0, 5).map((shape) => (
+                        <div className="blendshape-row" key={shape.name}>
+                          <span>{shape.name}</span>
+                          <strong>{shape.score.toFixed(3)}</strong>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   <div className="hand-list">
