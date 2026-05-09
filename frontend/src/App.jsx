@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -11,6 +11,12 @@ function App() {
   const [selectedOption, setSelectedOption] = useState("");
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
+
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState("");
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, options);
@@ -43,22 +49,28 @@ function App() {
       setExerciseIndex(0);
       setSelectedOption("");
       setFeedback("");
+      setCameraStatus("");
+      stopCamera();
     } catch (err) {
       setError("Ders akisi yuklenemedi.");
     }
   }
 
   function closeLesson() {
+    stopCamera();
     setSelectedLesson(null);
     setExerciseIndex(0);
     setSelectedOption("");
     setFeedback("");
+    setCameraStatus("");
   }
 
   function goNextExercise() {
     if (!selectedLesson) {
       return;
     }
+
+    stopCamera();
 
     const isLastExercise = exerciseIndex === selectedLesson.exercises.length - 1;
 
@@ -70,6 +82,7 @@ function App() {
     setExerciseIndex(exerciseIndex + 1);
     setSelectedOption("");
     setFeedback("");
+    setCameraStatus("");
   }
 
   function checkMultipleChoice(option) {
@@ -84,8 +97,39 @@ function App() {
     }
   }
 
-  function completeCameraDemo() {
-    setFeedback("Demo kontrol basarili. AI kontrolu sonraki adimda baglanacak.");
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      setCameraActive(true);
+      setCameraStatus("Kamera acildi. Isareti kameraya net sekilde goster.");
+    } catch (err) {
+      setCameraStatus("Kamera acilamadi. Tarayici kamera iznini kontrol et.");
+    }
+  }
+
+  function stopCamera() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    setCameraActive(false);
+  }
+
+  function acceptCameraExercise() {
+    setFeedback("Hareket alindi. AI kontrolu sonraki adimda baglanacak.");
+    setCameraStatus("Kamera egzersizi tamamlandi.");
+    stopCamera();
   }
 
   async function completeLessonFlow() {
@@ -110,6 +154,12 @@ function App() {
 
   useEffect(() => {
     loadData();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
   if (error) {
@@ -222,24 +272,54 @@ function App() {
               <div className="exercise-box">
                 <h2>{currentExercise.prompt}</h2>
 
-                <div className="camera-mock">
-                  Kamera / AI kontrol alani
+                <div className="camera-live-box">
+                  <video ref={videoRef} autoPlay playsInline muted />
+
+                  {!cameraActive && (
+                    <div className="camera-overlay">
+                      Kamera goruntusu burada gorunecek.
+                    </div>
+                  )}
                 </div>
 
-                <p>
-                  Bu bolumde sonraki adimda kamera acilacak ve AI hareketi
-                  kontrol edecek.
-                </p>
+                <div className="ai-status-box">
+                  <p className="eyebrow">AI Durumu</p>
+                  <h3>
+                    {cameraActive
+                      ? "Kamera hazir. Model sonraki adimda baglanacak."
+                      : "Kamera henuz acilmadi."}
+                  </h3>
+                  <p>
+                    Beklenen hareket:{" "}
+                    <strong>{currentExercise.expectedGesture}</strong>
+                  </p>
+                </div>
 
-                <button onClick={completeCameraDemo}>
-                  Demo olarak dogru kabul et
-                </button>
+                <div className="camera-action-row">
+                  <button onClick={startCamera}>Kamerayi Ac</button>
+
+                  <button className="secondary-button" onClick={stopCamera}>
+                    Kamerayi Kapat
+                  </button>
+
+                  <button
+                    className="success-button"
+                    onClick={acceptCameraExercise}
+                    disabled={!cameraActive}
+                  >
+                    Hareketi Yaptim
+                  </button>
+                </div>
+
+                {cameraStatus && (
+                  <strong className="feedback">{cameraStatus}</strong>
+                )}
 
                 {feedback && <strong className="feedback">{feedback}</strong>}
 
                 <button
                   onClick={goNextExercise}
-                  disabled={!feedback.includes("basarili")}
+                  disabled={!feedback.includes("Hareket alindi")}
                 >
                   Dersi Bitir
                 </button>
@@ -303,11 +383,15 @@ function App() {
                   return (
                     <button
                       key={lesson.id}
-                      className={isCompleted ? "lesson-pill completed" : "lesson-pill"}
+                      className={
+                        isCompleted ? "lesson-pill completed" : "lesson-pill"
+                      }
                       onClick={() => openLesson(lesson.id)}
                     >
                       <span>{lesson.title}</span>
-                      <small>{isCompleted ? "Tamamlandi" : `${lesson.xp} XP`}</small>
+                      <small>
+                        {isCompleted ? "Tamamlandi" : `${lesson.xp} XP`}
+                      </small>
                     </button>
                   );
                 })}
