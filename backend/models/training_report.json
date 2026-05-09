@@ -1,0 +1,436 @@
+{
+  "dataset": {
+    "sourceFile": "/Users/sunguru/Desktop/Elce/backend/data/normalized_sequences.json",
+    "totalSequencesInFile": 30,
+    "usableSequences": 30,
+    "flatFeatureLength": 16800,
+    "labelCounts": {
+      "merhaba_v1": 5,
+      "tesekkurler_v1": 5,
+      "tesekkurler_v2": 5,
+      "tesekkurler_v3": 5,
+      "yardim_v1": 5,
+      "hastane_v1": 5
+    },
+    "metadata": [
+      {
+        "id": 1,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 248,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 2,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 274,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 3,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 265,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 4,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 274,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 5,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 267,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 6,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 237,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 7,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 232,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 8,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 231,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 9,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 232,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 10,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 229,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 11,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 228,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 12,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 219,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 13,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 220,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 14,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 247,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 15,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 218,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 16,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 218,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 17,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 217,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 18,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 225,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 19,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 212,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 20,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 215,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 21,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 151,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 22,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 23,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 166,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 24,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 164,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 25,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 26,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 147,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 27,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 148,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 28,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 152,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 29,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 30,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      }
+    ]
+  },
+  "training": {
+    "modelType": "RandomForestClassifier",
+    "randomState": 42,
+    "testSize": 0.25,
+    "trainSize": 22,
+    "testSizeCount": 8,
+    "trainAccuracy": 1.0,
+    "testAccuracy": 1.0
+  },
+  "labels": [
+    "hastane_v1",
+    "merhaba_v1",
+    "tesekkurler_v1",
+    "tesekkurler_v2",
+    "tesekkurler_v3",
+    "yardim_v1"
+  ],
+  "classificationReport": {
+    "hastane_v1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
+    "merhaba_v1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
+    "tesekkurler_v1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
+    "tesekkurler_v2": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "tesekkurler_v3": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "yardim_v1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 8.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 8.0
+    }
+  },
+  "confusionMatrix": [
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      2,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ]
+  ]
+}
