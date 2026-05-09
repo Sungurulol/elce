@@ -15,6 +15,11 @@ function App() {
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("");
+  const [gestureCheck, setGestureCheck] = useState({
+    checked: false,
+    passed: false,
+    message: "",
+  });
 
   const [handStatus, setHandStatus] = useState({
     ready: false,
@@ -89,6 +94,7 @@ function App() {
       setSelectedOption("");
       setFeedback("");
       setCameraStatus("");
+      resetGestureCheck();
       resetHandStatus();
       stopCamera();
     } catch (err) {
@@ -103,6 +109,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    resetGestureCheck();
     resetHandStatus();
   }
 
@@ -124,6 +131,7 @@ function App() {
     setSelectedOption("");
     setFeedback("");
     setCameraStatus("");
+    resetGestureCheck();
     resetHandStatus();
   }
 
@@ -148,6 +156,14 @@ function App() {
     });
   }
 
+  function resetGestureCheck() {
+    setGestureCheck({
+      checked: false,
+      passed: false,
+      message: "",
+    });
+  }
+
   async function startCamera() {
     try {
       await setupHandLandmarker();
@@ -165,6 +181,7 @@ function App() {
         videoRef.current.onloadeddata = () => {
           setCameraActive(true);
           setCameraStatus("Kamera acildi. Elini kameraya net sekilde goster.");
+          resetGestureCheck();
           startHandDetectionLoop();
         };
       }
@@ -245,15 +262,57 @@ function App() {
     detectFrame();
   }
 
-  function acceptCameraExercise() {
+  function validateGestureRequirements(currentExercise) {
+    const expectedHands = currentExercise.expectedHands || 1;
+    const minLandmarksPerHand = currentExercise.minLandmarksPerHand || 21;
+
     if (!handStatus.detected) {
-      setFeedback("El algilanmadi. Elini kameraya daha net goster.");
-      return;
+      return {
+        passed: false,
+        message: "El algilanmadi. Elini kameraya daha net goster.",
+      };
     }
 
-    setFeedback("El algilandi. AI hareket siniflandirma sonraki adimda.");
-    setCameraStatus("Kamera egzersizi tamamlandi.");
-    stopCamera();
+    if (handStatus.handCount < expectedHands) {
+      return {
+        passed: false,
+        message: `Bu hareket icin ${expectedHands} el bekleniyor. Su an ${handStatus.handCount} el algilandi.`,
+      };
+    }
+
+    const usableHands = handStatus.hands.filter(
+      (hand) => hand.landmarkCount >= minLandmarksPerHand
+    );
+
+    if (usableHands.length < expectedHands) {
+      return {
+        passed: false,
+        message: `El landmarklari yetersiz. Her el icin en az ${minLandmarksPerHand} landmark bekleniyor.`,
+      };
+    }
+
+    return {
+      passed: true,
+      message: `Temel kontrol basarili. ${currentExercise.expectedGesture} egzersizi icin ${expectedHands} el algilandi.`,
+    };
+  }
+
+  function checkGestureExercise(currentExercise) {
+    const result = validateGestureRequirements(currentExercise);
+
+    setGestureCheck({
+      checked: true,
+      passed: result.passed,
+      message: result.message,
+    });
+
+    if (result.passed) {
+      setFeedback("Temel hareket kontrolu basarili. Dersi bitirebilirsin.");
+      setCameraStatus("Kamera egzersizi tamamlandi.");
+      stopCamera();
+    } else {
+      setFeedback(result.message);
+    }
   }
 
   async function completeLessonFlow() {
@@ -409,9 +468,24 @@ function App() {
 
                   <h3>
                     {handStatus.detected
-                      ? "El algilandi. Landmark takibi calisiyor."
+                      ? "El algilandi. Temel kontrol yapilabilir."
                       : "El bekleniyor."}
                   </h3>
+
+                  <div className="gesture-requirement-box">
+                    <div>
+                      <span>Beklenen hareket</span>
+                      <strong>{currentExercise.expectedGesture}</strong>
+                    </div>
+                    <div>
+                      <span>Gerekli el sayisi</span>
+                      <strong>{currentExercise.expectedHands || 1}</strong>
+                    </div>
+                    <div>
+                      <span>Minimum landmark</span>
+                      <strong>{currentExercise.minLandmarksPerHand || 21}</strong>
+                    </div>
+                  </div>
 
                   <div className="hand-debug-grid">
                     <div>
@@ -457,10 +531,17 @@ function App() {
                     )}
                   </div>
 
-                  <p>
-                    Beklenen hareket:{" "}
-                    <strong>{currentExercise.expectedGesture}</strong>
-                  </p>
+                  {gestureCheck.checked && (
+                    <div
+                      className={
+                        gestureCheck.passed
+                          ? "gesture-check-result success"
+                          : "gesture-check-result failed"
+                      }
+                    >
+                      {gestureCheck.message}
+                    </div>
+                  )}
                 </div>
 
                 <div className="camera-action-row">
@@ -470,7 +551,10 @@ function App() {
                     Kamerayi Kapat
                   </button>
 
-                  <button className="success-button" onClick={acceptCameraExercise}>
+                  <button
+                    className="success-button"
+                    onClick={() => checkGestureExercise(currentExercise)}
+                  >
                     Hareketi Kontrol Et
                   </button>
                 </div>
@@ -481,10 +565,7 @@ function App() {
 
                 {feedback && <strong className="feedback">{feedback}</strong>}
 
-                <button
-                  onClick={goNextExercise}
-                  disabled={!feedback.includes("El algilandi")}
-                >
+                <button onClick={goNextExercise} disabled={!gestureCheck.passed}>
                   Dersi Bitir
                 </button>
               </div>

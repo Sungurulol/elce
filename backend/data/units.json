@@ -32,7 +32,9 @@
             "type": "camera",
             "title": "Kamera pratigi",
             "prompt": "'Merhaba' isaretini kameraya goster.",
-            "expectedGesture": "merhaba"
+            "expectedGesture": "merhaba",
+            "expectedHands": 1,
+            "minLandmarksPerHand": 21
           }
         ]
       },
@@ -63,7 +65,9 @@
             "type": "camera",
             "title": "Kamera pratigi",
             "prompt": "'Tesekkurler' isaretini kameraya goster.",
-            "expectedGesture": "tesekkurler"
+            "expectedGesture": "tesekkurler",
+            "expectedHands": 1,
+            "minLandmarksPerHand": 21
           }
         ]
       }
@@ -102,7 +106,9 @@
             "type": "camera",
             "title": "Kamera pratigi",
             "prompt": "'Yardim' isaretini kameraya goster.",
-            "expectedGesture": "yardim"
+            "expectedGesture": "yardim",
+            "expectedHands": 2,
+            "minLandmarksPerHand": 21
           }
         ]
       },
@@ -133,7 +139,9 @@
             "type": "camera",
             "title": "Kamera pratigi",
             "prompt": "'Hastane' isaretini kameraya goster.",
-            "expectedGesture": "hastane"
+            "expectedGesture": "hastane",
+            "expectedHands": 1,
+            "minLandmarksPerHand": 21
           }
         ]
       }
