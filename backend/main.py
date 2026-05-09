@@ -37,6 +37,15 @@ HAND_LANDMARK_COUNT = 21
 MOUTH_LANDMARK_COUNT = 40
 TARGET_SAMPLES_PER_VARIANT = 5
 
+POSE_POINTS = [
+    "leftShoulder",
+    "rightShoulder",
+    "leftElbow",
+    "rightElbow",
+    "leftWrist",
+    "rightWrist",
+]
+
 BLENDSHAPE_NAMES = [
     "jawOpen",
     "mouthClose",
@@ -135,6 +144,18 @@ def point_to_vector(point):
     ]
 
 
+def pose_point_to_vector(point):
+    if not point:
+        return [0.0, 0.0, 0.0, 0.0]
+
+    return [
+        safe_float(point.get("x")),
+        safe_float(point.get("y")),
+        safe_float(point.get("z")),
+        safe_float(point.get("visibility")),
+    ]
+
+
 def normalize_hand_landmarks(hand):
     landmarks = hand.get("landmarks", [])
 
@@ -194,16 +215,30 @@ def normalize_blendshapes(frame):
     return [score_map.get(name, 0.0) for name in BLENDSHAPE_NAMES]
 
 
+def normalize_pose_landmarks(frame):
+    pose = frame.get("pose") or {}
+    upper_body = pose.get("upperBody") or {}
+
+    vector = []
+
+    for point_name in POSE_POINTS:
+        vector.extend(pose_point_to_vector(upper_body.get(point_name)))
+
+    return vector
+
+
 def normalize_single_frame(frame):
     hand_vector = normalize_hands(frame)
     mouth_vector = normalize_mouth_landmarks(frame)
     blendshape_vector = normalize_blendshapes(frame)
+    pose_vector = normalize_pose_landmarks(frame)
 
     return {
         "timestampMs": int(frame.get("timestampMs", 0)),
         "handCount": int(frame.get("handCount", 0)),
         "faceDetected": bool((frame.get("face") or {}).get("detected", False)),
-        "features": hand_vector + mouth_vector + blendshape_vector,
+        "poseDetected": bool((frame.get("pose") or {}).get("detected", False)),
+        "features": hand_vector + mouth_vector + blendshape_vector + pose_vector,
     }
 
 
@@ -218,6 +253,18 @@ def resample_frames(frames, target_count=TARGET_FRAME_COUNT):
                 "landmarkCount": 0,
                 "mouthLandmarks": [],
                 "blendshapes": [],
+            },
+            "pose": {
+                "detected": False,
+                "landmarkCount": 0,
+                "upperBody": {
+                    "leftShoulder": None,
+                    "rightShoulder": None,
+                    "leftElbow": None,
+                    "rightElbow": None,
+                    "leftWrist": None,
+                    "rightWrist": None,
+                },
             },
         }
 
@@ -272,6 +319,8 @@ def normalize_sequence(sequence):
             "handLandmarksPerHand": HAND_LANDMARK_COUNT,
             "mouthLandmarkCount": MOUTH_LANDMARK_COUNT,
             "blendshapeNames": BLENDSHAPE_NAMES,
+            "posePoints": POSE_POINTS,
+            "poseValuesPerPoint": ["x", "y", "z", "visibility"],
         },
         "frames": normalized_frames,
         "createdAt": datetime.now().isoformat(),
