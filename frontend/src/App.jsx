@@ -32,6 +32,8 @@ function App() {
   const [datasetSummary, setDatasetSummary] = useState(null);
 
   const [selectedLesson, setSelectedLesson] = useState(null);
+  const [freePracticeActive, setFreePracticeActive] = useState(false);
+
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
   const [selectedVariantLabel, setSelectedVariantLabel] = useState("");
@@ -41,6 +43,8 @@ function App() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("");
   const [sequenceStatus, setSequenceStatus] = useState("");
+  const [practiceStatus, setPracticeStatus] = useState("");
+  const [practiceResult, setPracticeResult] = useState(null);
   const [isRecordingSequence, setIsRecordingSequence] = useState(false);
 
   const [gestureCheck, setGestureCheck] = useState({
@@ -256,6 +260,7 @@ function App() {
     try {
       const lessonData = await fetchJson(`${API_URL}/lesson-flow/${lessonId}`);
 
+      setFreePracticeActive(false);
       setSelectedLesson(lessonData);
       setExerciseIndex(0);
       setSelectedOption("");
@@ -263,6 +268,8 @@ function App() {
       setFeedback("");
       setCameraStatus("");
       setSequenceStatus("");
+      setPracticeStatus("");
+      setPracticeResult(null);
       resetGestureCheck();
       resetHandStatus();
       resetFaceStatus();
@@ -271,6 +278,24 @@ function App() {
     } catch (err) {
       setError("Ders akisi yuklenemedi.");
     }
+  }
+
+  function openFreePractice() {
+    stopCamera();
+    setSelectedLesson(null);
+    setFreePracticeActive(true);
+    setExerciseIndex(0);
+    setSelectedOption("");
+    setSelectedVariantLabel("");
+    setFeedback("");
+    setCameraStatus("");
+    setSequenceStatus("");
+    setPracticeStatus("");
+    setPracticeResult(null);
+    resetGestureCheck();
+    resetHandStatus();
+    resetFaceStatus();
+    resetPoseStatus();
   }
 
   function closeLesson() {
@@ -282,6 +307,21 @@ function App() {
     setFeedback("");
     setCameraStatus("");
     setSequenceStatus("");
+    setPracticeStatus("");
+    setPracticeResult(null);
+    resetGestureCheck();
+    resetHandStatus();
+    resetFaceStatus();
+    resetPoseStatus();
+  }
+
+  function closeFreePractice() {
+    stopCamera();
+    setFreePracticeActive(false);
+    setCameraStatus("");
+    setSequenceStatus("");
+    setPracticeStatus("");
+    setPracticeResult(null);
     resetGestureCheck();
     resetHandStatus();
     resetFaceStatus();
@@ -308,6 +348,8 @@ function App() {
     setFeedback("");
     setCameraStatus("");
     setSequenceStatus("");
+    setPracticeStatus("");
+    setPracticeResult(null);
     resetGestureCheck();
     resetHandStatus();
     resetFaceStatus();
@@ -397,6 +439,8 @@ function App() {
           setCameraActive(true);
           setCameraStatus("Kamera acildi. Elini, yuzunu ve ust govdeni kameraya net goster.");
           setSequenceStatus("");
+          setPracticeStatus("");
+          setPracticeResult(null);
           resetGestureCheck();
           startDetectionLoop();
         };
@@ -749,6 +793,81 @@ function App() {
     }, durationMs);
   }
 
+  async function analyzeFreePracticeMovement() {
+    if (!cameraActive) {
+      setPracticeStatus("Once kamerayi ac.");
+      return;
+    }
+
+    if (isRecordingSequenceRef.current) {
+      setPracticeStatus("Analiz kaydi zaten devam ediyor.");
+      return;
+    }
+
+    const durationMs = 3000;
+
+    sequenceFramesRef.current = [];
+    sequenceStartTimeRef.current = performance.now();
+    isRecordingSequenceRef.current = true;
+
+    setIsRecordingSequence(true);
+    setPracticeResult(null);
+    setPracticeStatus("3 saniyelik serbest hareket aliniyor. Hareketi yap.");
+
+    setTimeout(() => {
+      isRecordingSequenceRef.current = false;
+      setIsRecordingSequence(false);
+
+      const frames = sequenceFramesRef.current;
+
+      if (frames.length === 0) {
+        setPracticeStatus("Hareket alinamadi. Frame bulunamadi.");
+        setPracticeResult(null);
+        return;
+      }
+
+      const framesWithHands = frames.filter((frame) => frame.handCount > 0).length;
+      const framesWithFace = frames.filter((frame) => frame.face?.detected).length;
+      const framesWithPose = frames.filter((frame) => frame.pose?.detected).length;
+
+      const maxHandCount = frames.reduce((maxValue, frame) => {
+        return Math.max(maxValue, frame.handCount || 0);
+      }, 0);
+
+      const hasVisibleUpperBody = frames.some((frame) => {
+        const upperBody = frame.pose?.upperBody;
+
+        if (!upperBody) {
+          return false;
+        }
+
+        return Boolean(
+          isVisiblePosePoint(upperBody.leftShoulder) ||
+            isVisiblePosePoint(upperBody.rightShoulder) ||
+            isVisiblePosePoint(upperBody.leftElbow) ||
+            isVisiblePosePoint(upperBody.rightElbow) ||
+            isVisiblePosePoint(upperBody.leftWrist) ||
+            isVisiblePosePoint(upperBody.rightWrist)
+        );
+      });
+
+      setPracticeResult({
+        frameCount: frames.length,
+        durationMs,
+        framesWithHands,
+        framesWithFace,
+        framesWithPose,
+        maxHandCount,
+        hasVisibleUpperBody,
+        modelConnected: false,
+      });
+
+      setPracticeStatus(
+        "Hareket alindi. Gercek model tahmini 21. adimda baglanacak."
+      );
+    }, durationMs);
+  }
+
   async function completeLessonFlow() {
     try {
       const result = await fetchJson(
@@ -777,6 +896,146 @@ function App() {
     };
   }, []);
 
+  function renderAiStatusPanel() {
+    return (
+      <div className="ai-status-box">
+        <p className="eyebrow">AI Durumu</p>
+
+        <h3>
+          {handStatus.detected
+            ? "El algilandi. Hareket analizi icin hazir."
+            : "El bekleniyor."}
+        </h3>
+
+        <div className="hand-debug-grid">
+          <div>
+            <span>El Modeli</span>
+            <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+          </div>
+
+          <div>
+            <span>El</span>
+            <strong>{handStatus.detected ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>El sayisi</span>
+            <strong>{handStatus.handCount}</strong>
+          </div>
+        </div>
+
+        <div className="face-debug-grid">
+          <div>
+            <span>Yuz Modeli</span>
+            <strong>{faceStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+          </div>
+
+          <div>
+            <span>Yuz</span>
+            <strong>{faceStatus.detected ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Yuz Landmark</span>
+            <strong>{faceStatus.landmarkCount}</strong>
+          </div>
+
+          <div>
+            <span>Agiz Noktasi</span>
+            <strong>{faceStatus.mouthLandmarkCount}</strong>
+          </div>
+
+          <div>
+            <span>Mimik Verisi</span>
+            <strong>{faceStatus.blendshapes.length}</strong>
+          </div>
+        </div>
+
+        <div className="pose-debug-grid">
+          <div>
+            <span>Pose Modeli</span>
+            <strong>{poseStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+          </div>
+
+          <div>
+            <span>Pose</span>
+            <strong>{poseStatus.detected ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sol Omuz</span>
+            <strong>{poseStatus.leftShoulder ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sag Omuz</span>
+            <strong>{poseStatus.rightShoulder ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sol Dirsek</span>
+            <strong>{poseStatus.leftElbow ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sag Dirsek</span>
+            <strong>{poseStatus.rightElbow ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sol Bilek</span>
+            <strong>{poseStatus.leftWrist ? "Var" : "Yok"}</strong>
+          </div>
+
+          <div>
+            <span>Sag Bilek</span>
+            <strong>{poseStatus.rightWrist ? "Var" : "Yok"}</strong>
+          </div>
+        </div>
+
+        <div className="blendshape-list">
+          {faceStatus.blendshapes.length === 0 ? (
+            <p>Henuz mimik verisi yok.</p>
+          ) : (
+            faceStatus.blendshapes.slice(0, 5).map((shape) => (
+              <div className="blendshape-row" key={shape.name}>
+                <span>{shape.name}</span>
+                <strong>{shape.score.toFixed(3)}</strong>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hand-list">
+          {handStatus.hands.length === 0 ? (
+            <p>Henuz el algilanmadi.</p>
+          ) : (
+            handStatus.hands.map((hand) => (
+              <div className="hand-card" key={hand.index}>
+                <p className="eyebrow">El {hand.index}</p>
+
+                <div className="hand-card-row">
+                  <span>Sag/Sol</span>
+                  <strong>{hand.handedness}</strong>
+                </div>
+
+                <div className="hand-card-row">
+                  <span>Landmark</span>
+                  <strong>{hand.landmarkCount}</strong>
+                </div>
+
+                <div className="hand-card-row">
+                  <span>Guven</span>
+                  <strong>{Math.round(hand.score * 100)}%</strong>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <main className="container">
@@ -794,6 +1053,113 @@ function App() {
       <main className="container">
         <section className="card">
           <h1>Elce yukleniyor...</h1>
+        </section>
+      </main>
+    );
+  }
+
+  if (freePracticeActive) {
+    return (
+      <main className="container lesson-page">
+        <section className="card lesson-shell">
+          <div className="lesson-topbar">
+            <button className="ghost-button" onClick={closeFreePractice}>
+              Geri
+            </button>
+
+            <div className="lesson-progress">
+              <div className="lesson-progress-fill" style={{ width: "100%" }} />
+            </div>
+
+            <span>Serbest Pratik</span>
+          </div>
+
+          <div className="lesson-content">
+            <p className="eyebrow">Serbest AI Pratik</p>
+            <h1>Hareketi secmeden kamerada isaret yap</h1>
+            <p className="hero-text">
+              Bu ekran 21. adimda modele baglanacak. Simdilik 3 saniyelik
+              hareket akisini toplar ve analiz icin hazirlar.
+            </p>
+
+            <div className="camera-live-box">
+              <video ref={videoRef} autoPlay playsInline muted />
+
+              {!cameraActive && (
+                <div className="camera-overlay">
+                  Kamera goruntusu burada gorunecek.
+                </div>
+              )}
+            </div>
+
+            {renderAiStatusPanel()}
+
+            <div className="camera-action-row">
+              <button onClick={startCamera}>Kamerayi Ac</button>
+
+              <button className="secondary-button" onClick={stopCamera}>
+                Kamerayi Kapat
+              </button>
+
+              <button
+                className="sequence-button"
+                onClick={analyzeFreePracticeMovement}
+                disabled={isRecordingSequence}
+              >
+                {isRecordingSequence ? "Analiz icin aliniyor..." : "3 sn Hareketi Analiz Et"}
+              </button>
+            </div>
+
+            {cameraStatus && <strong className="feedback">{cameraStatus}</strong>}
+
+            {practiceStatus && (
+              <strong className="sequence-feedback">{practiceStatus}</strong>
+            )}
+
+            {practiceResult && (
+              <div className="practice-result-card">
+                <p className="eyebrow">Analiz Ozeti</p>
+                <h2>Hareket kaydi hazir</h2>
+
+                <div className="practice-result-grid">
+                  <div>
+                    <span>Frame</span>
+                    <strong>{practiceResult.frameCount}</strong>
+                  </div>
+
+                  <div>
+                    <span>Maksimum el</span>
+                    <strong>{practiceResult.maxHandCount}</strong>
+                  </div>
+
+                  <div>
+                    <span>El olan frame</span>
+                    <strong>{practiceResult.framesWithHands}</strong>
+                  </div>
+
+                  <div>
+                    <span>Yuz olan frame</span>
+                    <strong>{practiceResult.framesWithFace}</strong>
+                  </div>
+
+                  <div>
+                    <span>Pose olan frame</span>
+                    <strong>{practiceResult.framesWithPose}</strong>
+                  </div>
+
+                  <div>
+                    <span>Ust govde</span>
+                    <strong>{practiceResult.hasVisibleUpperBody ? "Var" : "Zayif"}</strong>
+                  </div>
+                </div>
+
+                <p>
+                  Model tahmini henuz bagli degil. 21. adimda bu kayit backend'e
+                  gonderilecek ve egitilen modelden gercek tahmin alinacak.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
       </main>
     );
@@ -943,131 +1309,7 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="hand-debug-grid">
-                    <div>
-                      <span>El Modeli</span>
-                      <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
-                    </div>
-
-                    <div>
-                      <span>El</span>
-                      <strong>{handStatus.detected ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>El sayisi</span>
-                      <strong>{handStatus.handCount}</strong>
-                    </div>
-                  </div>
-
-                  <div className="face-debug-grid">
-                    <div>
-                      <span>Yuz Modeli</span>
-                      <strong>{faceStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Yuz</span>
-                      <strong>{faceStatus.detected ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Yuz Landmark</span>
-                      <strong>{faceStatus.landmarkCount}</strong>
-                    </div>
-
-                    <div>
-                      <span>Agiz Noktasi</span>
-                      <strong>{faceStatus.mouthLandmarkCount}</strong>
-                    </div>
-
-                    <div>
-                      <span>Mimik Verisi</span>
-                      <strong>{faceStatus.blendshapes.length}</strong>
-                    </div>
-                  </div>
-
-                  <div className="pose-debug-grid">
-                    <div>
-                      <span>Pose Modeli</span>
-                      <strong>{poseStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Pose</span>
-                      <strong>{poseStatus.detected ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sol Omuz</span>
-                      <strong>{poseStatus.leftShoulder ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sag Omuz</span>
-                      <strong>{poseStatus.rightShoulder ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sol Dirsek</span>
-                      <strong>{poseStatus.leftElbow ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sag Dirsek</span>
-                      <strong>{poseStatus.rightElbow ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sol Bilek</span>
-                      <strong>{poseStatus.leftWrist ? "Var" : "Yok"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Sag Bilek</span>
-                      <strong>{poseStatus.rightWrist ? "Var" : "Yok"}</strong>
-                    </div>
-                  </div>
-
-                  <div className="blendshape-list">
-                    {faceStatus.blendshapes.length === 0 ? (
-                      <p>Henuz mimik verisi yok.</p>
-                    ) : (
-                      faceStatus.blendshapes.slice(0, 5).map((shape) => (
-                        <div className="blendshape-row" key={shape.name}>
-                          <span>{shape.name}</span>
-                          <strong>{shape.score.toFixed(3)}</strong>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="hand-list">
-                    {handStatus.hands.length === 0 ? (
-                      <p>Henuz el algilanmadi.</p>
-                    ) : (
-                      handStatus.hands.map((hand) => (
-                        <div className="hand-card" key={hand.index}>
-                          <p className="eyebrow">El {hand.index}</p>
-
-                          <div className="hand-card-row">
-                            <span>Sag/Sol</span>
-                            <strong>{hand.handedness}</strong>
-                          </div>
-
-                          <div className="hand-card-row">
-                            <span>Landmark</span>
-                            <strong>{hand.landmarkCount}</strong>
-                          </div>
-
-                          <div className="hand-card-row">
-                            <span>Guven</span>
-                            <strong>{Math.round(hand.score * 100)}%</strong>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  {renderAiStatusPanel()}
 
                   {gestureCheck.checked && (
                     <div
@@ -1154,6 +1396,20 @@ function App() {
             <strong>{progress.badges.length}</strong>
           </div>
         </div>
+      </section>
+
+      <section className="card free-practice-card">
+        <div>
+          <p className="eyebrow">Serbest AI Pratik</p>
+          <h2>Hareket secmeden kamera karsisinda isaret yap</h2>
+          <p>
+            Bu ekran 21. adimda egitilen modele baglanacak. Simdilik derslerden
+            bagimsiz 3 saniyelik hareket akisini toplar ve analiz hazirligini
+            gosterir.
+          </p>
+        </div>
+
+        <button onClick={openFreePractice}>Pratige Basla</button>
       </section>
 
       <section className="card dataset-card">
