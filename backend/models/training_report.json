@@ -2,14 +2,22 @@
   "dataset": {
     "sourceFile": "/Users/sunguru/Desktop/Elce/backend/data/normalized_sequences.json",
     "labelMode": "base_label",
-    "totalSequencesInFile": 42,
-    "usableSequences": 42,
+    "totalSequencesInFile": 95,
+    "usableSequences": 95,
     "flatFeatureLength": 16800,
     "labelCounts": {
       "merhaba": 7,
       "tesekkurler": 21,
       "yardim": 7,
-      "hastane": 7
+      "hastane": 7,
+      "aile": 7,
+      "anne": 7,
+      "baba": 7,
+      "kardes": 8,
+      "bebek": 9,
+      "evet": 6,
+      "hayir": 5,
+      "lutfen": 4
     },
     "metadata": [
       {
@@ -431,6 +439,536 @@
         "targetFrameCount": 60,
         "featureLength": 280,
         "flatFeatureLength": 16800
+      },
+      {
+        "id": 43,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 144,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 44,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 174,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 45,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 176,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 46,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 165,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 47,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 48,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 49,
+        "label": "aile",
+        "variantLabel": "aile_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 50,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 148,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 51,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 169,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 52,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 166,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 53,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 160,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 54,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 55,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 56,
+        "label": "anne",
+        "variantLabel": "anne_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 57,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 145,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 58,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 159,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 59,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 164,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 60,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 166,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 61,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 62,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 167,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 63,
+        "label": "baba",
+        "variantLabel": "baba_v1",
+        "lessonId": 203,
+        "sourceFrameCount": 164,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 64,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 145,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 65,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 156,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 66,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 67,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 68,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 154,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 69,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 159,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 70,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 155,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 71,
+        "label": "kardes",
+        "variantLabel": "kardes_v1",
+        "lessonId": 204,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 72,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 163,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 73,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 164,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 74,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 165,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 75,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 163,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 76,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 77,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 78,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 79,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 160,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 80,
+        "label": "bebek",
+        "variantLabel": "bebek_v1",
+        "lessonId": 205,
+        "sourceFrameCount": 163,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 81,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 182,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 82,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 159,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 83,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 84,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 163,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 85,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 156,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 86,
+        "label": "evet",
+        "variantLabel": "evet_v1",
+        "lessonId": 103,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 87,
+        "label": "hayir",
+        "variantLabel": "hayir_v1",
+        "lessonId": 104,
+        "sourceFrameCount": 143,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 88,
+        "label": "hayir",
+        "variantLabel": "hayir_v1",
+        "lessonId": 104,
+        "sourceFrameCount": 164,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 89,
+        "label": "hayir",
+        "variantLabel": "hayir_v1",
+        "lessonId": 104,
+        "sourceFrameCount": 168,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 90,
+        "label": "hayir",
+        "variantLabel": "hayir_v1",
+        "lessonId": 104,
+        "sourceFrameCount": 166,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 91,
+        "label": "hayir",
+        "variantLabel": "hayir_v1",
+        "lessonId": 104,
+        "sourceFrameCount": 163,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 92,
+        "label": "lutfen",
+        "variantLabel": "lutfen_v1",
+        "lessonId": 105,
+        "sourceFrameCount": 147,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 93,
+        "label": "lutfen",
+        "variantLabel": "lutfen_v1",
+        "lessonId": 105,
+        "sourceFrameCount": 175,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 94,
+        "label": "lutfen",
+        "variantLabel": "lutfen_v1",
+        "lessonId": 105,
+        "sourceFrameCount": 180,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 95,
+        "label": "lutfen",
+        "variantLabel": "lutfen_v1",
+        "lessonId": 105,
+        "sourceFrameCount": 156,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
       }
     ]
   },
@@ -438,34 +976,90 @@
     "modelType": "RandomForestClassifier",
     "randomState": 42,
     "testSize": 0.25,
-    "trainSize": 31,
-    "testSizeCount": 11,
+    "trainSize": 71,
+    "testSizeCount": 24,
     "trainAccuracy": 1.0,
-    "testAccuracy": 0.8181818181818182
+    "testAccuracy": 1.0
   },
   "labels": [
+    "aile",
+    "anne",
+    "baba",
+    "bebek",
+    "evet",
     "hastane",
+    "hayir",
+    "kardes",
+    "lutfen",
     "merhaba",
     "tesekkurler",
     "yardim"
   ],
   "classificationReport": {
+    "aile": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "anne": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "baba": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "bebek": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "evet": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
     "hastane": {
       "precision": 1.0,
-      "recall": 0.5,
-      "f1-score": 0.6666666666666666,
+      "recall": 1.0,
+      "f1-score": 1.0,
       "support": 2.0
+    },
+    "hayir": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
+    },
+    "kardes": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "lutfen": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1.0
     },
     "merhaba": {
       "precision": 1.0,
-      "recall": 0.5,
-      "f1-score": 0.6666666666666666,
+      "recall": 1.0,
+      "f1-score": 1.0,
       "support": 2.0
     },
     "tesekkurler": {
-      "precision": 0.7142857142857143,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1-score": 0.8333333333333334,
+      "f1-score": 1.0,
       "support": 5.0
     },
     "yardim": {
@@ -474,40 +1068,184 @@
       "f1-score": 1.0,
       "support": 2.0
     },
-    "accuracy": 0.8181818181818182,
+    "accuracy": 1.0,
     "macro avg": {
-      "precision": 0.9285714285714286,
-      "recall": 0.75,
-      "f1-score": 0.7916666666666666,
-      "support": 11.0
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 24.0
     },
     "weighted avg": {
-      "precision": 0.8701298701298701,
-      "recall": 0.8181818181818182,
-      "f1-score": 0.8030303030303031,
-      "support": 11.0
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 24.0
     }
   },
   "confusionMatrix": [
     [
-      1,
+      2,
       0,
-      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       0
     ],
     [
       0,
-      1,
-      1,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       0
     ],
     [
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       0,
       0,
       5,
       0
     ],
     [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       0,
       0,
       0,

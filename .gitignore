@@ -20,3 +20,7 @@ ai-lab/models/
 # Logs
 *.loglocal_dataset_backup/
 local_dataset_backup/
+local_dataset_backup/
+backend/data/gesture_sequences.json
+local_dataset_backup/
+backend/data/gesture_sequences.json

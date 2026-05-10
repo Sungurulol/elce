@@ -168,7 +168,7 @@
             "type": "multiple_choice",
             "title": "Anlamını seç",
             "question": "Lütfen işareti hangi durumda kullanılır?",
-            "options": ["Kibarca istemek", "Acil durum bildirmek", "Anne demek", "Onlar demek"],
+            "options": ["Kibarca istemek", "Acil durum bildirmek", "Anne demek", "Hastane demek"],
             "answer": "Kibarca istemek"
           },
           {
@@ -210,7 +210,7 @@
             "type": "multiple_choice",
             "title": "Anlamını seç",
             "question": "Aile işareti hangi anlama gelir?",
-            "options": ["Aile", "Bebek", "Ben", "Hastane"],
+            "options": ["Aile", "Bebek", "Anne", "Hastane"],
             "answer": "Aile"
           },
           {
@@ -245,7 +245,7 @@
             "type": "multiple_choice",
             "title": "Anlamını seç",
             "question": "Anne işareti hangi anlama gelir?",
-            "options": ["Anne", "Baba", "Kardeş", "Biz"],
+            "options": ["Anne", "Baba", "Kardeş", "Aile"],
             "answer": "Anne"
           },
           {
@@ -315,7 +315,7 @@
             "type": "multiple_choice",
             "title": "Anlamını seç",
             "question": "Kardeş işareti hangi anlama gelir?",
-            "options": ["Kardeş", "Aile", "Lütfen", "Siz"],
+            "options": ["Kardeş", "Aile", "Lütfen", "Teşekkür etmek"],
             "answer": "Kardeş"
           },
           {
@@ -350,7 +350,7 @@
             "type": "multiple_choice",
             "title": "Anlamını seç",
             "question": "Bebek işareti hangi anlama gelir?",
-            "options": ["Bebek", "Baba", "Onlar", "Hastane"],
+            "options": ["Bebek", "Baba", "Anne", "Hastane"],
             "answer": "Bebek"
           },
           {
@@ -373,228 +373,11 @@
   },
   {
     "id": 3,
-    "title": "Kişiler ve Zamirler",
-    "description": "Kişileri ve zamirleri anlatan temel işaretler.",
-    "lessons": [
-      {
-        "id": 301,
-        "title": "Ben",
-        "description": "Ben zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "Ben işaretini öğren",
-            "prompt": "Ben",
-            "content": "Ben işareti, kişinin kendisini anlatması için kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "Ben işareti hangi anlama gelir?",
-            "options": ["Ben", "Sen", "Biz", "Onlar"],
-            "answer": "Ben"
-          },
-          {
-            "type": "camera",
-            "title": "Ben işaretini yap",
-            "prompt": "Kamera karşısında ben işaretini yap.",
-            "expectedGesture": "ben",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "ben_v1",
-                "title": "Ben - Varyant 1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": 302,
-        "title": "Sen",
-        "description": "Sen zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "Sen işaretini öğren",
-            "prompt": "Sen",
-            "content": "Sen işareti, karşıdaki kişiyi anlatmak için kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "Sen işareti hangi anlama gelir?",
-            "options": ["Sen", "Ben", "Siz", "O"],
-            "answer": "Sen"
-          },
-          {
-            "type": "camera",
-            "title": "Sen işaretini yap",
-            "prompt": "Kamera karşısında sen işaretini yap.",
-            "expectedGesture": "sen",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "sen_v1",
-                "title": "Sen - Varyant 1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": 303,
-        "title": "O",
-        "description": "O zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "O işaretini öğren",
-            "prompt": "O",
-            "content": "O işareti, konuşulan kişi veya şeyin dışındaki bir kişiyi anlatmak için kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "O işareti hangi anlama gelir?",
-            "options": ["O", "Ben", "Biz", "Aile"],
-            "answer": "O"
-          },
-          {
-            "type": "camera",
-            "title": "O işaretini yap",
-            "prompt": "Kamera karşısında o işaretini yap.",
-            "expectedGesture": "o",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "o_v1",
-                "title": "O - Varyant 1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": 304,
-        "title": "Biz",
-        "description": "Biz zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "Biz işaretini öğren",
-            "prompt": "Biz",
-            "content": "Biz işareti, konuşan kişinin dahil olduğu bir grubu anlatmak için kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "Biz işareti hangi anlama gelir?",
-            "options": ["Biz", "Siz", "Onlar", "Sen"],
-            "answer": "Biz"
-          },
-          {
-            "type": "camera",
-            "title": "Biz işaretini yap",
-            "prompt": "Kamera karşısında biz işaretini yap.",
-            "expectedGesture": "biz",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "biz_v1",
-                "title": "Biz - Varyant 1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": 305,
-        "title": "Siz",
-        "description": "Siz zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "Siz işaretini öğren",
-            "prompt": "Siz",
-            "content": "Siz işareti, birden fazla kişiye veya saygılı hitaba yönelik kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "Siz işareti hangi anlama gelir?",
-            "options": ["Siz", "Biz", "Ben", "Bebek"],
-            "answer": "Siz"
-          },
-          {
-            "type": "camera",
-            "title": "Siz işaretini yap",
-            "prompt": "Kamera karşısında siz işaretini yap.",
-            "expectedGesture": "siz",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "siz_v1",
-                "title": "Siz - Varyant 1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": 306,
-        "title": "Onlar",
-        "description": "Onlar zamirini anlatan işaret.",
-        "xp": 15,
-        "exercises": [
-          {
-            "type": "learn",
-            "title": "Onlar işaretini öğren",
-            "prompt": "Onlar",
-            "content": "Onlar işareti, birden fazla kişi veya grubu anlatmak için kullanılır."
-          },
-          {
-            "type": "multiple_choice",
-            "title": "Anlamını seç",
-            "question": "Onlar işareti hangi anlama gelir?",
-            "options": ["Onlar", "Ben", "Aile", "Hayır"],
-            "answer": "Onlar"
-          },
-          {
-            "type": "camera",
-            "title": "Onlar işaretini yap",
-            "prompt": "Kamera karşısında onlar işaretini yap.",
-            "expectedGesture": "onlar",
-            "expectedHands": 1,
-            "minLandmarksPerHand": 21,
-            "acceptedVariants": [
-              {
-                "id": "onlar_v1",
-                "title": "Onlar - Varyant 1"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": 4,
     "title": "Ekstralar",
     "description": "Daha önce eğitilen ama temel listede olmayan ek işaretler.",
     "lessons": [
       {
-        "id": 401,
+        "id": 301,
         "title": "Yardım",
         "description": "Yardım istemek için kullanılan işaret.",
         "xp": 20,
@@ -629,7 +412,7 @@
         ]
       },
       {
-        "id": 402,
+        "id": 302,
         "title": "Hastane",
         "description": "Hastane kelimesini anlatan işaret.",
         "xp": 20,

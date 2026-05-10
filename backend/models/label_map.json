@@ -1,21 +1,45 @@
 {
   "labelMode": "base_label",
   "labels": [
+    "aile",
+    "anne",
+    "baba",
+    "bebek",
+    "evet",
     "hastane",
+    "hayir",
+    "kardes",
+    "lutfen",
     "merhaba",
     "tesekkurler",
     "yardim"
   ],
   "labelToIndex": {
-    "hastane": 0,
-    "merhaba": 1,
-    "tesekkurler": 2,
-    "yardim": 3
+    "aile": 0,
+    "anne": 1,
+    "baba": 2,
+    "bebek": 3,
+    "evet": 4,
+    "hastane": 5,
+    "hayir": 6,
+    "kardes": 7,
+    "lutfen": 8,
+    "merhaba": 9,
+    "tesekkurler": 10,
+    "yardim": 11
   },
   "indexToLabel": {
-    "0": "hastane",
-    "1": "merhaba",
-    "2": "tesekkurler",
-    "3": "yardim"
+    "0": "aile",
+    "1": "anne",
+    "2": "baba",
+    "3": "bebek",
+    "4": "evet",
+    "5": "hastane",
+    "6": "hayir",
+    "7": "kardes",
+    "8": "lutfen",
+    "9": "merhaba",
+    "10": "tesekkurler",
+    "11": "yardim"
   }
 }
