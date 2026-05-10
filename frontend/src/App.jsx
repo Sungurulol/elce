@@ -33,6 +33,8 @@ function App() {
 
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [freePracticeActive, setFreePracticeActive] = useState(false);
+  const [activeHomePanel, setActiveHomePanel] = useState("dashboard");
+  const [developerMode, setDeveloperMode] = useState(false);
 
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
@@ -132,6 +134,10 @@ function App() {
     } catch (err) {
       setError("Backend bağlantısı başarısız. Önce backend'i çalıştır.");
     }
+  }
+
+  function openGithub() {
+    window.open("https://github.com/Sungurulol/elce", "_blank", "noreferrer");
   }
 
   function getExerciseVariants(exercise) {
@@ -548,6 +554,7 @@ function App() {
       };
 
       setFreePracticeActive(false);
+      setActiveHomePanel("dashboard");
       setSelectedLesson(filteredLessonData);
       setExerciseIndex(0);
       setSelectedOption("");
@@ -571,6 +578,26 @@ function App() {
     stopCamera();
     setSelectedLesson(null);
     setFreePracticeActive(true);
+    setActiveHomePanel("practice");
+    setExerciseIndex(0);
+    setSelectedOption("");
+    setSelectedVariantLabel("");
+    setFeedback("");
+    setCameraStatus("");
+    setSequenceStatus("");
+    setPracticeStatus("");
+    setPracticeResult(null);
+    resetGestureCheck();
+    resetHandStatus();
+    resetFaceStatus();
+    resetPoseStatus();
+  }
+
+  function goHome() {
+    stopCamera();
+    setSelectedLesson(null);
+    setFreePracticeActive(false);
+    setActiveHomePanel("dashboard");
     setExerciseIndex(0);
     setSelectedOption("");
     setSelectedVariantLabel("");
@@ -586,33 +613,11 @@ function App() {
   }
 
   function closeLesson() {
-    stopCamera();
-    setSelectedLesson(null);
-    setExerciseIndex(0);
-    setSelectedOption("");
-    setSelectedVariantLabel("");
-    setFeedback("");
-    setCameraStatus("");
-    setSequenceStatus("");
-    setPracticeStatus("");
-    setPracticeResult(null);
-    resetGestureCheck();
-    resetHandStatus();
-    resetFaceStatus();
-    resetPoseStatus();
+    goHome();
   }
 
   function closeFreePractice() {
-    stopCamera();
-    setFreePracticeActive(false);
-    setCameraStatus("");
-    setSequenceStatus("");
-    setPracticeStatus("");
-    setPracticeResult(null);
-    resetGestureCheck();
-    resetHandStatus();
-    resetFaceStatus();
-    resetPoseStatus();
+    goHome();
   }
 
   function goNextExercise() {
@@ -1246,7 +1251,7 @@ function App() {
       setFeedback("Ders tamamlandı. XP kazandın.");
 
       setTimeout(() => {
-        closeLesson();
+        goHome();
       }, 700);
     } catch (err) {
       setError("Ders tamamlama isteği başarısız oldu.");
@@ -1261,10 +1266,71 @@ function App() {
     };
   }, []);
 
+  function renderSidebar() {
+    return (
+      <aside className="app-sidebar">
+        <div className="brand-block brand-image-block" onClick={goHome}>
+          <img src="/elce-logo.png" alt="Elce" className="sidebar-logo-image" />
+        </div>
+
+        <nav className="sidebar-nav">
+          <button
+            className={!selectedLesson && !freePracticeActive && activeHomePanel === "dashboard" ? "active" : ""}
+            onClick={goHome}
+          >
+            <span>⌂</span>
+            Ana Sayfa
+          </button>
+
+          <button
+            className={activeHomePanel === "path" ? "active" : ""}
+            onClick={() => {
+              stopCamera();
+              setActiveHomePanel("path");
+              setSelectedLesson(null);
+              setFreePracticeActive(false);
+            }}
+          >
+            <span>●</span>
+            Ünite Yolu
+          </button>
+
+          <button
+            className={freePracticeActive ? "active" : ""}
+            onClick={openFreePractice}
+          >
+            <span>◉</span>
+            Serbest Pratik
+          </button>
+        </nav>
+
+        <div className="sidebar-bottom">
+          <div className="mode-switch-card">
+            <span>Mod</span>
+            <button
+              className={developerMode ? "developer-on" : ""}
+              onClick={() => setDeveloperMode(!developerMode)}
+            >
+              {developerMode ? "Developer" : "User"}
+            </button>
+          </div>
+
+          <button className="github-button" onClick={openGithub}>
+            GitHub
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   function renderAiStatusPanel() {
+    if (!developerMode) {
+      return null;
+    }
+
     return (
       <div className="ai-status-box">
-        <p className="eyebrow">AI Durumu</p>
+        <p className="eyebrow">Developer AI Durumu</p>
 
         <h3>
           {handStatus.detected
@@ -1361,479 +1427,76 @@ function App() {
     );
   }
 
-  if (error) {
-    return (
-      <main className="container">
-        <section className="card error-card">
-          <h1>Bağlantı hatası</h1>
-          <p>{error}</p>
-          <code>python -m uvicorn backend.main:app --reload</code>
-        </section>
-      </main>
-    );
-  }
-
-  if (!progress) {
-    return (
-      <main className="container">
-        <section className="card">
-          <h1>Elce yükleniyor...</h1>
-        </section>
-      </main>
-    );
-  }
-
-  if (freePracticeActive) {
-    const prediction = practiceResult?.prediction;
+  function renderProfileCard() {
+    const levelInfo = getNextLevelInfo();
 
     return (
-      <main className="container lesson-page">
-        <section className="card lesson-shell">
-          <div className="lesson-topbar">
-            <button className="ghost-button" onClick={closeFreePractice}>
-              Geri
-            </button>
+      <section className="profile-stats-card">
+        <div className="profile-header">
+          <div className="profile-avatar">E</div>
 
-            <div className="lesson-progress">
-              <div className="lesson-progress-fill" style={{ width: "100%" }} />
-            </div>
-
-            <span>Serbest Pratik</span>
+          <div>
+            <p className="eyebrow">Profil</p>
+            <h2>Öğrenci Profili</h2>
           </div>
-
-          <div className="lesson-content">
-            <p className="eyebrow">Serbest AI Pratik</p>
-            <h1>Hareketi seçmeden kamerada işaret yap</h1>
-            <p className="hero-text">
-              Bu ekran 3 saniyelik hareketi alır, backend'e yollar ve model tahmin sonucunu gösterir.
-            </p>
-
-            <div className="camera-live-box">
-              <video ref={videoRef} autoPlay playsInline muted />
-
-              {!cameraActive && (
-                <div className="camera-overlay">
-                  Kamera görüntüsü burada görünecek.
-                </div>
-              )}
-            </div>
-
-            {renderAiStatusPanel()}
-
-            <div className="camera-action-row">
-              <button onClick={startCamera}>Kamerayı Aç</button>
-
-              <button className="secondary-button" onClick={stopCamera}>
-                Kamerayı Kapat
-              </button>
-
-              <button
-                className="sequence-button"
-                onClick={analyzeFreePracticeMovement}
-                disabled={isRecordingSequence}
-              >
-                {isRecordingSequence ? "Analiz için alınıyor..." : "3 sn Hareketi Tahmin Et"}
-              </button>
-            </div>
-
-            {cameraStatus && <strong className="feedback">{cameraStatus}</strong>}
-
-            {practiceStatus && (
-              <strong className="sequence-feedback">{practiceStatus}</strong>
-            )}
-
-            {practiceResult && (
-              <div className="practice-result-card">
-                <p className="eyebrow">AI Tahmin Sonucu</p>
-
-                {prediction ? (
-                  <>
-                    <div className="prediction-hero">
-                      <span>Tahmin</span>
-                      <strong>{prediction.displayLabel}</strong>
-                      <small>Model etiketi: {prediction.prediction}</small>
-                    </div>
-
-                    <div className="confidence-bar">
-                      <div
-                        className="confidence-bar-fill"
-                        style={{ width: `${Math.round(prediction.confidence * 100)}%` }}
-                      />
-                    </div>
-
-                    <p>
-                      Güven: <strong>{Math.round(prediction.confidence * 100)}%</strong>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2>Model tahmini alınamadı</h2>
-                    <p>{practiceResult.predictionError || "Bilinmeyen hata"}</p>
-                  </>
-                )}
-
-                {prediction?.scores && prediction.scores.length > 0 && (
-                  <div className="score-list">
-                    <p className="eyebrow">Diğer ihtimaller</p>
-
-                    {prediction.scores.slice(0, 6).map((score) => (
-                      <div className="score-row" key={score.label}>
-                        <span>{score.displayLabel}</span>
-                        <strong>{Math.round(score.confidence * 100)}%</strong>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (selectedLesson) {
-    const currentExercise = selectedLesson.exercises[exerciseIndex];
-    const totalExercises = selectedLesson.exercises.length;
-    const progressPercent = ((exerciseIndex + 1) / totalExercises) * 100;
-    const variants = getExerciseVariants(currentExercise);
-    const activeVariantLabel = getActiveVariantLabel(currentExercise);
-
-    return (
-      <main className="container lesson-page">
-        <section className="card lesson-shell">
-          <div className="lesson-topbar">
-            <button className="ghost-button" onClick={closeLesson}>
-              Çık
-            </button>
-
-            <div className="lesson-progress">
-              <div
-                className="lesson-progress-fill"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-
-            <span>
-              {exerciseIndex + 1}/{totalExercises}
-            </span>
-          </div>
-
-          <div className="lesson-content">
-            <p className="eyebrow">{selectedLesson.title}</p>
-            <h1>{currentExercise.title}</h1>
-
-            {currentExercise.type === "learn" && (
-              <div className="exercise-box">
-                <h2>{currentExercise.prompt}</h2>
-                <p>{currentExercise.content}</p>
-
-                <div className="gesture-preview">
-                  İşaret görseli / video alanı
-                </div>
-
-                <button onClick={goNextExercise}>Devam</button>
-              </div>
-            )}
-
-            {currentExercise.type === "multiple_choice" && (
-              <div className="exercise-box">
-                <h2>{currentExercise.question}</h2>
-
-                <div className="gesture-preview quiz-preview">
-                  İşaret görseli / video alanı
-                </div>
-
-                <div className="option-grid">
-                  {currentExercise.options.map((option) => {
-                    const isSelected = selectedOption === option;
-                    const isCorrect = option === currentExercise.answer;
-
-                    let className = "option-button";
-
-                    if (isSelected && isCorrect) {
-                      className += " correct";
-                    }
-
-                    if (isSelected && !isCorrect) {
-                      className += " wrong";
-                    }
-
-                    return (
-                      <button
-                        key={option}
-                        className={className}
-                        onClick={() => checkMultipleChoice(option)}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {feedback && <strong className="feedback">{feedback}</strong>}
-
-                <button
-                  onClick={goNextExercise}
-                  disabled={selectedOption !== currentExercise.answer}
-                >
-                  Devam
-                </button>
-              </div>
-            )}
-
-            {currentExercise.type === "camera" && (
-              <div className="exercise-box">
-                <h2>{currentExercise.prompt}</h2>
-
-                <div className="variant-select-box">
-                  <label htmlFor="variant-select">Kaydedilecek varyant</label>
-                  <select
-                    id="variant-select"
-                    value={activeVariantLabel}
-                    onChange={(event) => setSelectedVariantLabel(event.target.value)}
-                    disabled={isRecordingSequence}
-                  >
-                    {variants.map((variant) => (
-                      <option key={variant.id} value={variant.id}>
-                        {variant.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="camera-live-box">
-                  <video ref={videoRef} autoPlay playsInline muted />
-
-                  {!cameraActive && (
-                    <div className="camera-overlay">
-                      Kamera görüntüsü burada görünecek.
-                    </div>
-                  )}
-                </div>
-
-                <div className="ai-status-box">
-                  <p className="eyebrow">AI Durumu</p>
-
-                  <h3>
-                    {handStatus.detected
-                      ? "El algılandı. AI kontrol yapılabilir."
-                      : "El bekleniyor."}
-                  </h3>
-
-                  <div className="gesture-requirement-box">
-                    <div>
-                      <span>Beklenen hareket</span>
-                      <strong>{currentExercise.expectedGesture}</strong>
-                    </div>
-                    <div>
-                      <span>Seçilen varyant</span>
-                      <strong>{activeVariantLabel}</strong>
-                    </div>
-                    <div>
-                      <span>Gerekli el sayısı</span>
-                      <strong>{currentExercise.expectedHands || 1}</strong>
-                    </div>
-                    <div>
-                      <span>Minimum landmark</span>
-                      <strong>{currentExercise.minLandmarksPerHand || 21}</strong>
-                    </div>
-                  </div>
-
-                  {renderAiStatusPanel()}
-
-                  {gestureCheck.checked && (
-                    <div
-                      className={
-                        gestureCheck.passed
-                          ? "gesture-check-result success"
-                          : "gesture-check-result failed"
-                      }
-                    >
-                      <strong>{gestureCheck.message}</strong>
-
-                      {gestureCheck.evaluation && (
-                        <div className="lesson-ai-result">
-                          <div>
-                            <span>Doğrulama modu</span>
-                            <strong>
-                              {gestureCheck.evaluation.mode === "ai"
-                                ? "AI tahmin"
-                                : "Temel kamera kontrolü"}
-                            </strong>
-                          </div>
-
-                          <div>
-                            <span>Beklenen hareket</span>
-                            <strong>{gestureCheck.evaluation.expectedGesture}</strong>
-                          </div>
-
-                          <div>
-                            <span>Ham skor</span>
-                            <strong>
-                              {Math.round(gestureCheck.evaluation.expectedRawScore * 100)}%
-                            </strong>
-                          </div>
-
-                          <div>
-                            <span>Context bonus</span>
-                            <strong>
-                              +{Math.round(gestureCheck.evaluation.contextBonus * 100)}%
-                            </strong>
-                          </div>
-
-                          <div>
-                            <span>Final skor</span>
-                            <strong>
-                              {Math.round(gestureCheck.evaluation.adjustedScore * 100)}%
-                            </strong>
-                          </div>
-                        </div>
-                      )}
-
-                      {gestureCheck.prediction?.scores && (
-                        <div className="lesson-score-list">
-                          {gestureCheck.prediction.scores.slice(0, 5).map((score) => (
-                            <div className="lesson-score-row" key={score.label}>
-                              <span>{score.displayLabel}</span>
-                              <strong>{Math.round(score.confidence * 100)}%</strong>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="camera-action-row">
-                  <button onClick={startCamera}>Kamerayı Aç</button>
-
-                  <button className="secondary-button" onClick={stopCamera}>
-                    Kamerayı Kapat
-                  </button>
-
-                  <button
-                    className="success-button"
-                    onClick={() => checkGestureExercise(currentExercise)}
-                    disabled={isRecordingSequence}
-                  >
-                    {isRecordingSequence ? "AI kontrol ediyor..." : "AI ile Kontrol Et"}
-                  </button>
-
-                  <button
-                    className="sequence-button"
-                    onClick={() => saveGestureSequence(currentExercise)}
-                    disabled={isRecordingSequence}
-                  >
-                    {isRecordingSequence ? "Kaydediliyor..." : "3 sn Sequence Kaydet"}
-                  </button>
-                </div>
-
-                {cameraStatus && (
-                  <strong className="feedback">{cameraStatus}</strong>
-                )}
-
-                {feedback && <strong className="feedback">{feedback}</strong>}
-
-                {sequenceStatus && (
-                  <strong className="sequence-feedback">{sequenceStatus}</strong>
-                )}
-
-                <button onClick={goNextExercise} disabled={!gestureCheck.passed}>
-                  Dersi Bitir
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  const levelInfo = getNextLevelInfo();
-
-  return (
-    <main className="container">
-      <section className="card hero-card hero-with-profile">
-        <div className="hero-copy">
-          <p className="eyebrow">Elce MVP</p>
-          <h1>Ünite tabanlı Türk İşaret Dili eğitimi</h1>
-          <p className="hero-text">
-            Günlük dersler, ünite ilerlemesi, kamera pratiği ve oyunlaştırılmış
-            XP sistemi.
-          </p>
         </div>
 
-        <aside className="profile-stats-card">
-          <div className="profile-header">
-            <div className="profile-avatar">E</div>
-
-            <div>
-              <p className="eyebrow">Profil</p>
-              <h2>Öğrenci Profili</h2>
-            </div>
-          </div>
-
-          <div className="profile-level-box">
-            <span>Seviye</span>
-            <strong>{getUserLevel()}</strong>
-            <small>
-              {levelInfo.hasNextLevel
-                ? `Seviye ${levelInfo.nextLevel} için ${levelInfo.remainingXp} XP kaldı`
-                : "Maksimum seviyedesin"}
-            </small>
-          </div>
-
-          <div className="profile-level-track">
-            <div
-              className="profile-level-track-fill"
-              style={{ width: `${levelInfo.progressPercent}%` }}
-            />
-          </div>
-
-          <div className="profile-stat-grid">
-            <div>
-              <span>XP</span>
-              <strong>{progress.xp}</strong>
-            </div>
-
-            <div>
-              <span>Streak</span>
-              <strong>{progress.streak}</strong>
-            </div>
-
-            <div>
-              <span>Rozet</span>
-              <strong>{progress.badges.length}</strong>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section className="card free-practice-card">
-        <div>
-          <p className="eyebrow">Serbest AI Pratik</p>
-          <h2>Hareket seçmeden kamera karşısında işaret yap</h2>
-          <p>
-            Bu ekran eğitilen modeli kullanarak 3 saniyelik hareketi tahmin eder.
-          </p>
+        <div className="profile-level-box">
+          <span>Seviye</span>
+          <strong>{getUserLevel()}</strong>
+          <small>
+            {levelInfo.hasNextLevel
+              ? `Seviye ${levelInfo.nextLevel} için ${levelInfo.remainingXp} XP kaldı`
+              : "Maksimum seviyedesin"}
+          </small>
         </div>
 
-        <button onClick={openFreePractice}>Pratiğe Başla</button>
-      </section>
+        <div className="profile-level-track">
+          <div
+            className="profile-level-track-fill"
+            style={{ width: `${levelInfo.progressPercent}%` }}
+          />
+        </div>
 
-      <section className="card learning-path-card">
-        <p className="eyebrow">Ders Yolu</p>
-        <h2>Ünite Yolu</h2>
+        <div className="profile-stat-grid">
+          <div>
+            <span>XP</span>
+            <strong>{progress.xp}</strong>
+          </div>
+
+          <div>
+            <span>Streak</span>
+            <strong>{progress.streak}</strong>
+          </div>
+
+          <div>
+            <span>Rozet</span>
+            <strong>{progress.badges.length}</strong>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function renderLearningPath() {
+    return (
+      <section className="learning-path-card">
+        <div className="section-heading-row">
+          <div>
+            <p className="eyebrow">Ders Yolu</p>
+            <h2>Ünite Yolu</h2>
+          </div>
+
+          <span className="section-chip">Seviye {getUserLevel()}</span>
+        </div>
+
         <p className="path-description">
           XP kazanarak seviye atla. Seviye 2, Ünite 2'yi; Seviye 3, Ünite 3'ü açar.
-          Her seviye için önceki ünitenin yaklaşık %60 XP hedefi gerekir.
         </p>
 
         <div className="learning-path">
           {units.map((unit, unitIndex) => {
             const unitUnlocked = isUnitUnlocked(unitIndex);
-            const completedCount = getCompletedLessonCount(unit);
             const progressPercent = getUnitProgressPercent(unit);
 
             return (
@@ -1869,9 +1532,7 @@ function App() {
 
                 <div className="unit-unlock-rule">
                   {unitUnlocked ? (
-                    <span>
-                      Bu ünite açık. Sonraki seviye için XP kazanmaya devam et.
-                    </span>
+                    <span>Bu ünite açık. Derslerden istediğini seçebilirsin.</span>
                   ) : (
                     <span>{getUnitLockMessage(unitIndex)}</span>
                   )}
@@ -1920,24 +1581,430 @@ function App() {
           })}
         </div>
       </section>
+    );
+  }
 
-      <section className="card">
-        <p className="eyebrow">Başarılar</p>
-        <h2>Rozetler</h2>
+  if (error) {
+    return (
+      <div className="app-shell">
+        {renderSidebar()}
 
-        <div className="badges">
-          {progress.badges.length === 0 ? (
-            <p>Henüz rozet kazanılmadı.</p>
-          ) : (
-            progress.badges.map((badge) => (
-              <span className="badge" key={badge}>
-                {badge}
-              </span>
-            ))
-          )}
+        <main className="app-main">
+          <section className="error-card">
+            <h1>Bağlantı hatası</h1>
+            <p>{error}</p>
+            <code>python -m uvicorn backend.main:app --reload</code>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (!progress) {
+    return (
+      <div className="app-shell">
+        <aside className="app-sidebar">
+          <div className="brand-block">
+            <div className="brand-logo">E</div>
+            <div>
+              <strong>Elce</strong>
+              <span>Yükleniyor</span>
+            </div>
+          </div>
+        </aside>
+
+        <main className="app-main">
+          <section className="loading-card">
+            <h1>Elce yükleniyor...</h1>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (freePracticeActive) {
+    const prediction = practiceResult?.prediction;
+
+    return (
+      <div className="app-shell">
+        {renderSidebar()}
+
+        <main className="app-main">
+          <section className="practice-layout">
+            <div className="camera-phone-frame">
+              <video ref={videoRef} autoPlay playsInline muted />
+
+              {!cameraActive && (
+                <div className="camera-overlay">
+                  Kamera görüntüsü burada görünecek.
+                </div>
+              )}
+            </div>
+
+            <aside className="study-side-panel">
+              <button className="ghost-button" onClick={closeFreePractice}>
+                Geri
+              </button>
+
+              <p className="eyebrow">Serbest AI Pratik</p>
+              <h1>Hareketi kamerada yap</h1>
+              <p>
+                Sistem 3 saniyelik hareketi alır ve eğitilen model ile tahmin eder.
+              </p>
+
+              <div className="study-actions">
+                <button onClick={startCamera}>Kamerayı Aç</button>
+                <button className="secondary-button" onClick={stopCamera}>
+                  Kamerayı Kapat
+                </button>
+                <button
+                  className="sequence-button"
+                  onClick={analyzeFreePracticeMovement}
+                  disabled={isRecordingSequence}
+                >
+                  {isRecordingSequence ? "Analiz ediliyor..." : "3 sn Tahmin Et"}
+                </button>
+              </div>
+
+              {cameraStatus && <strong className="feedback">{cameraStatus}</strong>}
+              {practiceStatus && <strong className="sequence-feedback">{practiceStatus}</strong>}
+
+              {practiceResult && (
+                <div className="practice-result-card">
+                  <p className="eyebrow">AI Tahmin Sonucu</p>
+
+                  {prediction ? (
+                    <>
+                      <div className="prediction-hero">
+                        <span>Tahmin</span>
+                        <strong>{prediction.displayLabel}</strong>
+                        <small>Model etiketi: {prediction.prediction}</small>
+                      </div>
+
+                      <div className="confidence-bar">
+                        <div
+                          className="confidence-bar-fill"
+                          style={{ width: `${Math.round(prediction.confidence * 100)}%` }}
+                        />
+                      </div>
+
+                      <p>
+                        Güven: <strong>{Math.round(prediction.confidence * 100)}%</strong>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2>Model tahmini alınamadı</h2>
+                      <p>{practiceResult.predictionError || "Bilinmeyen hata"}</p>
+                    </>
+                  )}
+
+                  {prediction?.scores && prediction.scores.length > 0 && (
+                    <div className="score-list">
+                      <p className="eyebrow">Diğer ihtimaller</p>
+
+                      {prediction.scores.slice(0, 6).map((score) => (
+                        <div className="score-row" key={score.label}>
+                          <span>{score.displayLabel}</span>
+                          <strong>{Math.round(score.confidence * 100)}%</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {renderAiStatusPanel()}
+            </aside>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (selectedLesson) {
+    const currentExercise = selectedLesson.exercises[exerciseIndex];
+    const totalExercises = selectedLesson.exercises.length;
+    const progressPercent = ((exerciseIndex + 1) / totalExercises) * 100;
+    const variants = getExerciseVariants(currentExercise);
+    const activeVariantLabel = getActiveVariantLabel(currentExercise);
+
+    if (currentExercise.type === "camera") {
+      return (
+        <div className="app-shell">
+          {renderSidebar()}
+
+          <main className="app-main">
+            <section className="practice-layout">
+              <div className="camera-phone-frame">
+                <video ref={videoRef} autoPlay playsInline muted />
+
+                {!cameraActive && (
+                  <div className="camera-overlay">
+                    Kamera görüntüsü burada görünecek.
+                  </div>
+                )}
+              </div>
+
+              <aside className="study-side-panel">
+                <button className="ghost-button" onClick={closeLesson}>
+                  Çık
+                </button>
+
+                <div className="lesson-progress compact">
+                  <div
+                    className="lesson-progress-fill"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                <span className="step-label">
+                  {exerciseIndex + 1}/{totalExercises}
+                </span>
+
+                <p className="eyebrow">{selectedLesson.title}</p>
+                <h1>{currentExercise.title}</h1>
+                <p>{currentExercise.prompt}</p>
+
+                <div className="question-card">
+                  <span>Beklenen hareket</span>
+                  <strong>{currentExercise.expectedGesture}</strong>
+                  <small>Kamera karşısında bu işareti yap.</small>
+                </div>
+
+                {developerMode && (
+                  <div className="variant-select-box">
+                    <label htmlFor="variant-select">Kaydedilecek varyant</label>
+                    <select
+                      id="variant-select"
+                      value={activeVariantLabel}
+                      onChange={(event) => setSelectedVariantLabel(event.target.value)}
+                      disabled={isRecordingSequence}
+                    >
+                      {variants.map((variant) => (
+                        <option key={variant.id} value={variant.id}>
+                          {variant.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="study-actions">
+                  <button onClick={startCamera}>Kamerayı Aç</button>
+
+                  <button className="secondary-button" onClick={stopCamera}>
+                    Kamerayı Kapat
+                  </button>
+
+                  <button
+                    className="success-button"
+                    onClick={() => checkGestureExercise(currentExercise)}
+                    disabled={isRecordingSequence}
+                  >
+                    {isRecordingSequence ? "AI kontrol ediyor..." : "AI ile Kontrol Et"}
+                  </button>
+
+                  {developerMode && (
+                    <button
+                      className="sequence-button"
+                      onClick={() => saveGestureSequence(currentExercise)}
+                      disabled={isRecordingSequence}
+                    >
+                      {isRecordingSequence ? "Kaydediliyor..." : "3 sn Sequence Kaydet"}
+                    </button>
+                  )}
+                </div>
+
+                {cameraStatus && <strong className="feedback">{cameraStatus}</strong>}
+                {feedback && <strong className="feedback">{feedback}</strong>}
+                {sequenceStatus && <strong className="sequence-feedback">{sequenceStatus}</strong>}
+
+                {gestureCheck.checked && (
+                  <div
+                    className={
+                      gestureCheck.passed
+                        ? "gesture-check-result success"
+                        : "gesture-check-result failed"
+                    }
+                  >
+                    <strong>{gestureCheck.message}</strong>
+
+                    {gestureCheck.evaluation && (
+                      <div className="lesson-ai-result">
+                        <div>
+                          <span>Mod</span>
+                          <strong>
+                            {gestureCheck.evaluation.mode === "ai"
+                              ? "AI"
+                              : "Temel"}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Ham</span>
+                          <strong>
+                            {Math.round(gestureCheck.evaluation.expectedRawScore * 100)}%
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Bonus</span>
+                          <strong>
+                            +{Math.round(gestureCheck.evaluation.contextBonus * 100)}%
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Final</span>
+                          <strong>
+                            {Math.round(gestureCheck.evaluation.adjustedScore * 100)}%
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {developerMode && gestureCheck.prediction?.scores && (
+                      <div className="lesson-score-list">
+                        {gestureCheck.prediction.scores.slice(0, 5).map((score) => (
+                          <div className="lesson-score-row" key={score.label}>
+                            <span>{score.displayLabel}</span>
+                            <strong>{Math.round(score.confidence * 100)}%</strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button onClick={goNextExercise} disabled={!gestureCheck.passed}>
+                  Dersi Bitir
+                </button>
+
+                {renderAiStatusPanel()}
+              </aside>
+            </section>
+          </main>
         </div>
-      </section>
-    </main>
+      );
+    }
+
+    return (
+      <div className="app-shell">
+        {renderSidebar()}
+
+        <main className="app-main">
+          <section className="lesson-learn-layout">
+            <button className="ghost-button" onClick={closeLesson}>
+              Çık
+            </button>
+
+            <div className="lesson-progress compact">
+              <div
+                className="lesson-progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <span className="step-label">
+              {exerciseIndex + 1}/{totalExercises}
+            </span>
+
+            <p className="eyebrow">{selectedLesson.title}</p>
+            <h1>{currentExercise.title}</h1>
+
+            <div className="learn-content-panel">
+              <h2>{currentExercise.prompt}</h2>
+              <p>{currentExercise.content}</p>
+            </div>
+
+            <button onClick={goNextExercise}>Devam</button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      {renderSidebar()}
+
+      <main className="app-main">
+        {activeHomePanel === "path" ? (
+          <section className="path-page-layout">
+            <div className="path-page-main">
+              {renderLearningPath()}
+            </div>
+
+            <aside className="path-mascot-panel">
+              <img
+                src="/elce-mascot.png"
+                alt="Elce maskotu"
+                className="path-mascot-image"
+              />
+            </aside>
+          </section>
+        ) : (
+          <section className="home-dashboard">
+            <div className="home-hero-panel">
+              <div>
+                <p className="eyebrow">Elce MVP</p>
+                <h1>Türk İşaret Dili öğrenme yolun</h1>
+                <p>
+                  Üniteleri tamamla, XP kazan, seviye atla ve kamera destekli
+                  pratiklerle işaretleri çalış.
+                </p>
+
+                <div className="home-action-row">
+                  <button
+                    onClick={() => {
+                      setActiveHomePanel("path");
+                      setSelectedLesson(null);
+                      setFreePracticeActive(false);
+                    }}
+                  >
+                    Ünite Yoluna Git
+                  </button>
+
+                  <button className="secondary-button" onClick={openFreePractice}>
+                    Serbest Pratik
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="home-info-grid">
+              <section className="home-info-card">
+                <p className="eyebrow">Seviye</p>
+                <h2>Seviye {getUserLevel()}</h2>
+                <p>
+                  Yeni üniteler XP kazanarak açılır. Seviye 2, Ünite 2'yi;
+                  Seviye 3, Ünite 3'ü açar.
+                </p>
+              </section>
+
+              <section className="home-info-card">
+                <p className="eyebrow">XP</p>
+                <h2>{progress.xp} XP</h2>
+                <p>
+                  Dersleri bitirdikçe XP kazanırsın. XP, ünite ilerlemesini ve
+                  seviye kilitlerini belirler.
+                </p>
+              </section>
+
+              <section className="home-info-card">
+                <p className="eyebrow">Pratik</p>
+                <h2>AI Kamera</h2>
+                <p>
+                  Kamera egzersizlerinde işareti yaparsın, model hareketini
+                  analiz eder ve sonucu gösterir.
+                </p>
+              </section>
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
   );
 }
 
