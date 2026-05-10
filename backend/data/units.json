@@ -14,7 +14,8 @@
             "type": "learn",
             "title": "Merhaba işaretini öğren",
             "prompt": "Merhaba",
-            "content": "Merhaba işareti, karşındaki kişiyle iletişime başlamak için kullanılır."
+            "content": "Merhaba işareti, karşındaki kişiyle iletişime başlamak için kullanılır.",
+            "image": "/gestures/merhaba.png"
           },
           {
             "type": "multiple_choice",
@@ -49,7 +50,8 @@
             "type": "learn",
             "title": "Teşekkürler işaretini öğren",
             "prompt": "Teşekkürler",
-            "content": "Teşekkürler işareti, minnettarlık veya teşekkür ifade etmek için kullanılır."
+            "content": "Teşekkürler işareti, minnettarlık veya teşekkür ifade etmek için kullanılır.",
+            "image": "/gestures/tesekkurler.png"
           },
           {
             "type": "multiple_choice",
@@ -92,7 +94,8 @@
             "type": "learn",
             "title": "Evet işaretini öğren",
             "prompt": "Evet",
-            "content": "Evet işareti, onay vermek veya kabul etmek için kullanılır."
+            "content": "Evet işareti, onay vermek veya kabul etmek için kullanılır.",
+            "image": "/gestures/evet.png"
           },
           {
             "type": "multiple_choice",
@@ -127,7 +130,8 @@
             "type": "learn",
             "title": "Hayır işaretini öğren",
             "prompt": "Hayır",
-            "content": "Hayır işareti, reddetmek veya kabul etmemek için kullanılır."
+            "content": "Hayır işareti, reddetmek veya kabul etmemek için kullanılır.",
+            "image": "/gestures/hayir.png"
           },
           {
             "type": "multiple_choice",
@@ -162,7 +166,8 @@
             "type": "learn",
             "title": "Lütfen işaretini öğren",
             "prompt": "Lütfen",
-            "content": "Lütfen işareti, kibarca rica etmek veya istemek için kullanılır."
+            "content": "Lütfen işareti, kibarca rica etmek veya istemek için kullanılır.",
+            "image": "/gestures/lutfen.png"
           },
           {
             "type": "multiple_choice",

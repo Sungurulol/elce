@@ -1,14 +1,6 @@
 {
-  "xp": 15,
+  "xp": 0,
   "streak": 0,
-  "completedLessons": [],
-  "completedScenarios": [],
-  "completedUnitLessons": [
-    101
-  ],
-  "speedTestsCompleted": 0,
-  "cameraPracticesCompleted": 0,
-  "badges": [
-    "ilk_unite_dersi"
-  ]
+  "completedUnitLessons": [],
+  "badges": []
 }
