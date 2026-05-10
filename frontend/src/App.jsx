@@ -99,13 +99,13 @@ function App() {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      let detail = "Istek basarisiz oldu";
+      let detail = "İstek başarısız oldu.";
 
       try {
         const errorData = await response.json();
         detail = errorData.detail || detail;
       } catch (err) {
-        detail = "Istek basarisiz oldu";
+        detail = "İstek başarısız oldu.";
       }
 
       throw new Error(detail);
@@ -130,7 +130,7 @@ function App() {
       setDatasetSummary(summaryData);
       setError("");
     } catch (err) {
-      setError("Backend baglantisi basarisiz. Once backend'i calistir.");
+      setError("Backend bağlantısı başarısız. Önce backend'i çalıştır.");
     }
   }
 
@@ -177,12 +177,139 @@ function App() {
     return activeVariantLabel;
   }
 
+  function getBaseGestureLabel(label) {
+    if (!label) {
+      return "";
+    }
+
+    if (label.includes("_v")) {
+      return label.split("_v")[0];
+    }
+
+    return label;
+  }
+
+  function findExpectedScore(scores, expectedGesture) {
+    if (!scores || scores.length === 0) {
+      return null;
+    }
+
+    return scores.find((score) => {
+      return getBaseGestureLabel(score.label) === expectedGesture;
+    });
+  }
+
+  function getContextBonus(rawScore) {
+    if (rawScore >= 0.2) {
+      return 0.2;
+    }
+
+    if (rawScore >= 0.1) {
+      return 0.15;
+    }
+
+    return 0;
+  }
+
+  function validateRecordedFrames(frames, currentExercise) {
+    const expectedHands = currentExercise.expectedHands || 1;
+    const minLandmarksPerHand = currentExercise.minLandmarksPerHand || 21;
+
+    if (!frames || frames.length === 0) {
+      return {
+        passed: false,
+        message: "Hareket kaydı alınamadı. Tekrar dene.",
+        framesWithRequiredHands: 0,
+        requiredFrameCount: 0,
+      };
+    }
+
+    const framesWithRequiredHands = frames.filter((frame) => {
+      if ((frame.handCount || 0) < expectedHands) {
+        return false;
+      }
+
+      const usableHands = (frame.hands || []).filter((hand) => {
+        return (hand.landmarkCount || 0) >= minLandmarksPerHand;
+      });
+
+      return usableHands.length >= expectedHands;
+    }).length;
+
+    const requiredFrameCount = Math.max(5, Math.floor(frames.length * 0.25));
+
+    if (framesWithRequiredHands < requiredFrameCount) {
+      return {
+        passed: false,
+        message: `Hareket yeterince net alınamadı. ${expectedHands} el bekleniyor. El görünen frame: ${framesWithRequiredHands}/${frames.length}`,
+        framesWithRequiredHands,
+        requiredFrameCount,
+      };
+    }
+
+    return {
+      passed: true,
+      message: `Kamera kontrolü başarılı. El görünen frame: ${framesWithRequiredHands}/${frames.length}`,
+      framesWithRequiredHands,
+      requiredFrameCount,
+    };
+  }
+
+  function evaluateLessonPrediction(prediction, currentExercise, frameValidation) {
+    const expectedGesture = currentExercise.expectedGesture;
+    const scores = prediction?.scores || [];
+    const expectedScore = findExpectedScore(scores, expectedGesture);
+
+    if (!expectedScore) {
+      return {
+        mode: "basic",
+        passed: frameValidation.passed,
+        expectedGesture,
+        expectedRawScore: 0,
+        contextBonus: 0,
+        adjustedScore: 0,
+        message: frameValidation.passed
+          ? "Bu işaret için AI modeli henüz hazır değil. Temel kamera kontrolü başarılı."
+          : frameValidation.message,
+      };
+    }
+
+    const expectedRawScore = expectedScore.confidence || 0;
+    const contextBonus = getContextBonus(expectedRawScore);
+    const adjustedScore = expectedRawScore + contextBonus;
+    const passed = adjustedScore >= 0.4;
+
+    if (passed) {
+      return {
+        mode: "ai",
+        passed: true,
+        expectedGesture,
+        expectedRawScore,
+        contextBonus,
+        adjustedScore,
+        message: `Doğru! ${currentExercise.title} başarıyla algılandı.`,
+      };
+    }
+
+    const topPrediction = scores[0];
+
+    return {
+      mode: "ai",
+      passed: false,
+      expectedGesture,
+      expectedRawScore,
+      contextBonus,
+      adjustedScore,
+      message: `Tekrar dene. Model en çok "${topPrediction?.displayLabel || "bilinmeyen"}" hareketine benzetti.`,
+    };
+  }
+
   async function setupHandLandmarker() {
     if (handLandmarkerRef.current) {
       return;
     }
 
-    setCameraStatus("El algilama modeli yukleniyor...");
+    setCameraStatus("El algılama modeli yükleniyor...");
 
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -203,7 +330,7 @@ function App() {
       ready: true,
     }));
 
-    setCameraStatus("El algilama modeli hazir.");
+    setCameraStatus("El algılama modeli hazır.");
   }
 
   async function setupFaceLandmarker() {
@@ -211,7 +338,7 @@ function App() {
       return;
     }
 
-    setCameraStatus("Yuz algilama modeli yukleniyor...");
+    setCameraStatus("Yüz algılama modeli yükleniyor...");
 
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -233,7 +360,7 @@ function App() {
       ready: true,
     }));
 
-    setCameraStatus("Yuz algilama modeli hazir.");
+    setCameraStatus("Yüz algılama modeli hazır.");
   }
 
   async function setupPoseLandmarker() {
@@ -241,7 +368,7 @@ function App() {
       return;
     }
 
-    setCameraStatus("Pose algilama modeli yukleniyor...");
+    setCameraStatus("Pose algılama modeli yükleniyor...");
 
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -262,7 +389,7 @@ function App() {
       ready: true,
     }));
 
-    setCameraStatus("Pose algilama modeli hazir.");
+    setCameraStatus("Pose algılama modeli hazır.");
   }
 
   async function openLesson(lessonId) {
@@ -285,7 +412,7 @@ function App() {
       resetPoseStatus();
       stopCamera();
     } catch (err) {
-      setError("Ders akisi yuklenemedi.");
+      setError("Ders akışı yüklenemedi.");
     }
   }
 
@@ -371,9 +498,9 @@ function App() {
     setSelectedOption(option);
 
     if (option === currentExercise.answer) {
-      setFeedback("Dogru cevap. Devam edebilirsin.");
+      setFeedback("Doğru cevap. Devam edebilirsin.");
     } else {
-      setFeedback("Yanlis cevap. Tekrar dene.");
+      setFeedback("Yanlış cevap. Tekrar dene.");
     }
   }
 
@@ -446,7 +573,7 @@ function App() {
 
         videoRef.current.onloadeddata = () => {
           setCameraActive(true);
-          setCameraStatus("Kamera acildi. Elini, yuzunu ve ust govdeni kameraya net goster.");
+          setCameraStatus("Kamera açıldı. Elini, yüzünü ve üst gövdeni kameraya net göster.");
           setSequenceStatus("");
           setPracticeStatus("");
           setPracticeResult(null);
@@ -455,7 +582,7 @@ function App() {
         };
       }
     } catch (err) {
-      setCameraStatus("Kamera veya algilama modelleri baslatilamadi.");
+      setCameraStatus("Kamera veya algılama modelleri başlatılamadı.");
     }
   }
 
@@ -685,67 +812,15 @@ function App() {
     detectFrame();
   }
 
-  function validateGestureRequirements(currentExercise) {
-    const expectedHands = currentExercise.expectedHands || 1;
-    const minLandmarksPerHand = currentExercise.minLandmarksPerHand || 21;
-
-    if (!handStatus.detected) {
-      return {
-        passed: false,
-        message: "El algilanmadi. Elini kameraya daha net goster.",
-      };
-    }
-
-    if (handStatus.handCount < expectedHands) {
-      return {
-        passed: false,
-        message: `Bu hareket icin ${expectedHands} el bekleniyor. Su an ${handStatus.handCount} el algilandi.`,
-      };
-    }
-
-    const usableHands = handStatus.hands.filter(
-      (hand) => hand.landmarkCount >= minLandmarksPerHand
-    );
-
-    if (usableHands.length < expectedHands) {
-      return {
-        passed: false,
-        message: `El landmarklari yetersiz. Her el icin en az ${minLandmarksPerHand} landmark bekleniyor.`,
-      };
-    }
-
-    return {
-      passed: true,
-      message: `Temel kontrol basarili. ${currentExercise.expectedGesture} egzersizi icin ${expectedHands} el algilandi.`,
-    };
-  }
-
-  function checkGestureExercise(currentExercise) {
-    const result = validateGestureRequirements(currentExercise);
-
-    setGestureCheck({
-      checked: true,
-      passed: result.passed,
-      message: result.message,
-    });
-
-    if (result.passed) {
-      setFeedback("Temel hareket kontrolu basarili. Dersi bitirebilirsin.");
-      setCameraStatus("Kamera egzersizi tamamlandi.");
-      stopCamera();
-    } else {
-      setFeedback(result.message);
-    }
-  }
-
-  async function saveGestureSequence(currentExercise) {
+  async function checkGestureExercise(currentExercise) {
     if (!cameraActive) {
-      setSequenceStatus("Once kamerayi ac.");
+      setFeedback("Önce kamerayı aç.");
+      setCameraStatus("Kamera kapalı.");
       return;
     }
 
     if (isRecordingSequenceRef.current) {
-      setSequenceStatus("Sequence kaydi zaten devam ediyor.");
+      setFeedback("Kontrol kaydı zaten devam ediyor.");
       return;
     }
 
@@ -756,7 +831,104 @@ function App() {
     isRecordingSequenceRef.current = true;
 
     setIsRecordingSequence(true);
-    setSequenceStatus("3 saniyelik sequence kaydi basladi. Hareketi yap.");
+    setFeedback("");
+    setGestureCheck({
+      checked: false,
+      passed: false,
+      message: "",
+    });
+    setCameraStatus("AI kontrolü başladı. Hareketi 3 saniye boyunca yap.");
+
+    setTimeout(async () => {
+      isRecordingSequenceRef.current = false;
+      setIsRecordingSequence(false);
+
+      const frames = sequenceFramesRef.current;
+      const frameValidation = validateRecordedFrames(frames, currentExercise);
+
+      if (!frameValidation.passed) {
+        setGestureCheck({
+          checked: true,
+          passed: false,
+          message: frameValidation.message,
+          frameValidation,
+        });
+
+        setFeedback(frameValidation.message);
+        setCameraStatus("Hareket yeterince net alınamadı.");
+        return;
+      }
+
+      try {
+        setCameraStatus("Hareket alındı. Model tahmini yapılıyor...");
+
+        const prediction = await fetchJson(`${API_URL}/predict-gesture`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            durationMs,
+            frameCount: frames.length,
+            frames,
+          }),
+        });
+
+        const evaluation = evaluateLessonPrediction(
+          prediction,
+          currentExercise,
+          frameValidation
+        );
+
+        setGestureCheck({
+          checked: true,
+          passed: evaluation.passed,
+          message: evaluation.message,
+          prediction,
+          evaluation,
+          frameValidation,
+        });
+
+        if (evaluation.passed) {
+          setFeedback("Doğru! Dersi bitirebilirsin.");
+          setCameraStatus("AI kontrolü başarılı.");
+        } else {
+          setFeedback(evaluation.message);
+          setCameraStatus("AI kontrolü başarısız. Tekrar dene.");
+        }
+      } catch (err) {
+        setGestureCheck({
+          checked: true,
+          passed: false,
+          message: `Model tahmini alınamadı: ${err.message}`,
+          frameValidation,
+        });
+
+        setFeedback(`Model tahmini alınamadı: ${err.message}`);
+        setCameraStatus("AI kontrolü sırasında hata oluştu.");
+      }
+    }, durationMs);
+  }
+
+  async function saveGestureSequence(currentExercise) {
+    if (!cameraActive) {
+      setSequenceStatus("Önce kamerayı aç.");
+      return;
+    }
+
+    if (isRecordingSequenceRef.current) {
+      setSequenceStatus("Sequence kaydı zaten devam ediyor.");
+      return;
+    }
+
+    const durationMs = 3000;
+
+    sequenceFramesRef.current = [];
+    sequenceStartTimeRef.current = performance.now();
+    isRecordingSequenceRef.current = true;
+
+    setIsRecordingSequence(true);
+    setSequenceStatus("3 saniyelik sequence kaydı başladı. Hareketi yap.");
 
     setTimeout(async () => {
       isRecordingSequenceRef.current = false;
@@ -765,7 +937,7 @@ function App() {
       const frames = sequenceFramesRef.current;
 
       if (frames.length === 0) {
-        setSequenceStatus("Sequence kaydedilemedi. Frame bulunamadi.");
+        setSequenceStatus("Sequence kaydedilemedi. Frame bulunamadı.");
         return;
       }
 
@@ -794,7 +966,7 @@ function App() {
         await loadDatasetSummary();
 
         setSequenceStatus(
-          `${variantTitle} icin 3 sn sequence kaydedildi. Frame: ${frames.length}. Toplam sequence: ${result.count}`
+          `${variantTitle} için 3 sn sequence kaydedildi. Frame: ${frames.length}. Toplam sequence: ${result.count}`
         );
       } catch (err) {
         setSequenceStatus("Sequence kaydedilemedi. Backend endpointini kontrol et.");
@@ -804,12 +976,12 @@ function App() {
 
   async function analyzeFreePracticeMovement() {
     if (!cameraActive) {
-      setPracticeStatus("Once kamerayi ac.");
+      setPracticeStatus("Önce kamerayı aç.");
       return;
     }
 
     if (isRecordingSequenceRef.current) {
-      setPracticeStatus("Analiz kaydi zaten devam ediyor.");
+      setPracticeStatus("Analiz kaydı zaten devam ediyor.");
       return;
     }
 
@@ -821,7 +993,7 @@ function App() {
 
     setIsRecordingSequence(true);
     setPracticeResult(null);
-    setPracticeStatus("3 saniyelik serbest hareket aliniyor. Hareketi yap.");
+    setPracticeStatus("3 saniyelik serbest hareket alınıyor. Hareketi yap.");
 
     setTimeout(async () => {
       isRecordingSequenceRef.current = false;
@@ -830,7 +1002,7 @@ function App() {
       const frames = sequenceFramesRef.current;
 
       if (frames.length === 0) {
-        setPracticeStatus("Hareket alinamadi. Frame bulunamadi.");
+        setPracticeStatus("Hareket alınamadı. Frame bulunamadı.");
         setPracticeResult(null);
         return;
       }
@@ -860,7 +1032,7 @@ function App() {
         );
       });
 
-      setPracticeStatus("Hareket alindi. Model tahmini isteniyor...");
+      setPracticeStatus("Hareket alındı. Model tahmini isteniyor...");
 
       try {
         const prediction = await fetchJson(`${API_URL}/predict-gesture`, {
@@ -888,7 +1060,7 @@ function App() {
         });
 
         setPracticeStatus(
-          `Tahmin tamamlandi: ${prediction.displayLabel} (${Math.round(
+          `Tahmin tamamlandı: ${prediction.displayLabel} (${Math.round(
             prediction.confidence * 100
           )}%)`
         );
@@ -905,7 +1077,7 @@ function App() {
           predictionError: err.message,
         });
 
-        setPracticeStatus(`Model tahmini alinamadi: ${err.message}`);
+        setPracticeStatus(`Model tahmini alınamadı: ${err.message}`);
       }
     }, durationMs);
   }
@@ -920,13 +1092,13 @@ function App() {
       );
 
       setProgress(result.progress);
-      setFeedback("Ders tamamlandi. XP kazandin.");
+      setFeedback("Ders tamamlandı. XP kazandın.");
 
       setTimeout(() => {
         closeLesson();
       }, 700);
     } catch (err) {
-      setError("Ders tamamlama istegi basarisiz oldu.");
+      setError("Ders tamamlama isteği başarısız oldu.");
     }
   }
 
@@ -938,6 +1110,86 @@ function App() {
     };
   }, []);
 
+  function getCompletedLessonCount(unit) {
+    return unit.lessons.filter((lesson) =>
+      progress.completedUnitLessons.includes(lesson.id)
+    ).length;
+  }
+
+  function getRequiredLessonCount(unit) {
+    return Math.ceil(unit.lessons.length * 0.6);
+  }
+
+  function getUnitProgressPercent(unit) {
+    const completedCount = getCompletedLessonCount(unit);
+
+    if (unit.lessons.length === 0) {
+      return 0;
+    }
+
+    return Math.round((completedCount / unit.lessons.length) * 100);
+  }
+
+  function isUnitUnlocked(unitIndex) {
+    if (unitIndex === 0) {
+      return true;
+    }
+
+    const previousUnit = units[unitIndex - 1];
+
+    if (!previousUnit) {
+      return false;
+    }
+
+    const previousCompletedCount = getCompletedLessonCount(previousUnit);
+    const requiredCount = getRequiredLessonCount(previousUnit);
+
+    return previousCompletedCount >= requiredCount;
+  }
+
+  function getUnitLockMessage(unitIndex) {
+    if (unitIndex === 0) {
+      return "";
+    }
+
+    const previousUnit = units[unitIndex - 1];
+
+    if (!previousUnit) {
+      return "Önceki ünite bulunamadı.";
+    }
+
+    const previousCompletedCount = getCompletedLessonCount(previousUnit);
+    const requiredCount = getRequiredLessonCount(previousUnit);
+
+    return `${previousUnit.title} ünitesinden en az ${requiredCount} ders tamamla. Şu an: ${previousCompletedCount}/${previousUnit.lessons.length}`;
+  }
+
+  function getLessonState(unitUnlocked, lesson) {
+    const isCompleted = progress.completedUnitLessons.includes(lesson.id);
+
+    if (isCompleted) {
+      return "completed";
+    }
+
+    if (unitUnlocked) {
+      return "open";
+    }
+
+    return "locked";
+  }
+
+  function getLessonStateText(state) {
+    if (state === "completed") {
+      return "Tamamlandı";
+    }
+
+    if (state === "open") {
+      return "Açık";
+    }
+
+    return "Kilitli";
+  }
+
   function renderAiStatusPanel() {
     return (
       <div className="ai-status-box">
@@ -945,14 +1197,14 @@ function App() {
 
         <h3>
           {handStatus.detected
-            ? "El algilandi. Hareket analizi icin hazir."
+            ? "El algılandı. Hareket analizi için hazır."
             : "El bekleniyor."}
         </h3>
 
         <div className="hand-debug-grid">
           <div>
             <span>El Modeli</span>
-            <strong>{handStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+            <strong>{handStatus.ready ? "Hazır" : "Yüklenmedi"}</strong>
           </div>
 
           <div>
@@ -961,29 +1213,29 @@ function App() {
           </div>
 
           <div>
-            <span>El sayisi</span>
+            <span>El sayısı</span>
             <strong>{handStatus.handCount}</strong>
           </div>
         </div>
 
         <div className="face-debug-grid">
           <div>
-            <span>Yuz Modeli</span>
-            <strong>{faceStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+            <span>Yüz Modeli</span>
+            <strong>{faceStatus.ready ? "Hazır" : "Yüklenmedi"}</strong>
           </div>
 
           <div>
-            <span>Yuz</span>
+            <span>Yüz</span>
             <strong>{faceStatus.detected ? "Var" : "Yok"}</strong>
           </div>
 
           <div>
-            <span>Yuz Landmark</span>
+            <span>Yüz Landmark</span>
             <strong>{faceStatus.landmarkCount}</strong>
           </div>
 
           <div>
-            <span>Agiz Noktasi</span>
+            <span>Ağız Noktası</span>
             <strong>{faceStatus.mouthLandmarkCount}</strong>
           </div>
 
@@ -996,7 +1248,7 @@ function App() {
         <div className="pose-debug-grid">
           <div>
             <span>Pose Modeli</span>
-            <strong>{poseStatus.ready ? "Hazir" : "Yuklenmedi"}</strong>
+            <strong>{poseStatus.ready ? "Hazır" : "Yüklenmedi"}</strong>
           </div>
 
           <div>
@@ -1010,7 +1262,7 @@ function App() {
           </div>
 
           <div>
-            <span>Sag Omuz</span>
+            <span>Sağ Omuz</span>
             <strong>{poseStatus.rightShoulder ? "Var" : "Yok"}</strong>
           </div>
 
@@ -1020,7 +1272,7 @@ function App() {
           </div>
 
           <div>
-            <span>Sag Dirsek</span>
+            <span>Sağ Dirsek</span>
             <strong>{poseStatus.rightElbow ? "Var" : "Yok"}</strong>
           </div>
 
@@ -1030,49 +1282,9 @@ function App() {
           </div>
 
           <div>
-            <span>Sag Bilek</span>
+            <span>Sağ Bilek</span>
             <strong>{poseStatus.rightWrist ? "Var" : "Yok"}</strong>
           </div>
-        </div>
-
-        <div className="blendshape-list">
-          {faceStatus.blendshapes.length === 0 ? (
-            <p>Henuz mimik verisi yok.</p>
-          ) : (
-            faceStatus.blendshapes.slice(0, 5).map((shape) => (
-              <div className="blendshape-row" key={shape.name}>
-                <span>{shape.name}</span>
-                <strong>{shape.score.toFixed(3)}</strong>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="hand-list">
-          {handStatus.hands.length === 0 ? (
-            <p>Henuz el algilanmadi.</p>
-          ) : (
-            handStatus.hands.map((hand) => (
-              <div className="hand-card" key={hand.index}>
-                <p className="eyebrow">El {hand.index}</p>
-
-                <div className="hand-card-row">
-                  <span>Sag/Sol</span>
-                  <strong>{hand.handedness}</strong>
-                </div>
-
-                <div className="hand-card-row">
-                  <span>Landmark</span>
-                  <strong>{hand.landmarkCount}</strong>
-                </div>
-
-                <div className="hand-card-row">
-                  <span>Guven</span>
-                  <strong>{Math.round(hand.score * 100)}%</strong>
-                </div>
-              </div>
-            ))
-          )}
         </div>
       </div>
     );
@@ -1082,7 +1294,7 @@ function App() {
     return (
       <main className="container">
         <section className="card error-card">
-          <h1>Baglanti hatasi</h1>
+          <h1>Bağlantı hatası</h1>
           <p>{error}</p>
           <code>python -m uvicorn backend.main:app --reload</code>
         </section>
@@ -1094,7 +1306,7 @@ function App() {
     return (
       <main className="container">
         <section className="card">
-          <h1>Elce yukleniyor...</h1>
+          <h1>Elce yükleniyor...</h1>
         </section>
       </main>
     );
@@ -1120,10 +1332,9 @@ function App() {
 
           <div className="lesson-content">
             <p className="eyebrow">Serbest AI Pratik</p>
-            <h1>Hareketi secmeden kamerada isaret yap</h1>
+            <h1>Hareketi seçmeden kamerada işaret yap</h1>
             <p className="hero-text">
-              Bu ekran 21. adimda egitilen modele baglandi. 3 saniyelik
-              hareketi alir, backend'e yollar ve tahmin sonucunu gosterir.
+              Bu ekran 3 saniyelik hareketi alır, backend'e yollar ve model tahmin sonucunu gösterir.
             </p>
 
             <div className="camera-live-box">
@@ -1131,7 +1342,7 @@ function App() {
 
               {!cameraActive && (
                 <div className="camera-overlay">
-                  Kamera goruntusu burada gorunecek.
+                  Kamera görüntüsü burada görünecek.
                 </div>
               )}
             </div>
@@ -1139,10 +1350,10 @@ function App() {
             {renderAiStatusPanel()}
 
             <div className="camera-action-row">
-              <button onClick={startCamera}>Kamerayi Ac</button>
+              <button onClick={startCamera}>Kamerayı Aç</button>
 
               <button className="secondary-button" onClick={stopCamera}>
-                Kamerayi Kapat
+                Kamerayı Kapat
               </button>
 
               <button
@@ -1150,7 +1361,7 @@ function App() {
                 onClick={analyzeFreePracticeMovement}
                 disabled={isRecordingSequence}
               >
-                {isRecordingSequence ? "Analiz icin aliniyor..." : "3 sn Hareketi Tahmin Et"}
+                {isRecordingSequence ? "Analiz için alınıyor..." : "3 sn Hareketi Tahmin Et"}
               </button>
             </div>
 
@@ -1180,51 +1391,19 @@ function App() {
                     </div>
 
                     <p>
-                      Guven: <strong>{Math.round(prediction.confidence * 100)}%</strong>
+                      Güven: <strong>{Math.round(prediction.confidence * 100)}%</strong>
                     </p>
                   </>
                 ) : (
                   <>
-                    <h2>Model tahmini alinamadi</h2>
+                    <h2>Model tahmini alınamadı</h2>
                     <p>{practiceResult.predictionError || "Bilinmeyen hata"}</p>
                   </>
                 )}
 
-                <div className="practice-result-grid">
-                  <div>
-                    <span>Frame</span>
-                    <strong>{practiceResult.frameCount}</strong>
-                  </div>
-
-                  <div>
-                    <span>Maksimum el</span>
-                    <strong>{practiceResult.maxHandCount}</strong>
-                  </div>
-
-                  <div>
-                    <span>El olan frame</span>
-                    <strong>{practiceResult.framesWithHands}</strong>
-                  </div>
-
-                  <div>
-                    <span>Yuz olan frame</span>
-                    <strong>{practiceResult.framesWithFace}</strong>
-                  </div>
-
-                  <div>
-                    <span>Pose olan frame</span>
-                    <strong>{practiceResult.framesWithPose}</strong>
-                  </div>
-
-                  <div>
-                    <span>Ust govde</span>
-                    <strong>{practiceResult.hasVisibleUpperBody ? "Var" : "Zayif"}</strong>
-                  </div>
-                </div>
-
                 {prediction?.scores && prediction.scores.length > 0 && (
                   <div className="score-list">
-                    <p className="eyebrow">Diger ihtimaller</p>
+                    <p className="eyebrow">Diğer ihtimaller</p>
 
                     {prediction.scores.slice(0, 6).map((score) => (
                       <div className="score-row" key={score.label}>
@@ -1233,13 +1412,6 @@ function App() {
                       </div>
                     ))}
                   </div>
-                )}
-
-                {practiceResult.modelConnected && (
-                  <p>
-                    Model backend uzerinden gercek tahmin dondurdu. Dataset kucuk oldugu
-                    icin sonuc demo seviyesinde degerlendirilmeli.
-                  </p>
                 )}
               </div>
             )}
@@ -1261,7 +1433,7 @@ function App() {
         <section className="card lesson-shell">
           <div className="lesson-topbar">
             <button className="ghost-button" onClick={closeLesson}>
-              Cik
+              Çık
             </button>
 
             <div className="lesson-progress">
@@ -1286,7 +1458,7 @@ function App() {
                 <p>{currentExercise.content}</p>
 
                 <div className="gesture-preview">
-                  Isaret gorseli / video alani
+                  İşaret görseli / video alanı
                 </div>
 
                 <button onClick={goNextExercise}>Devam</button>
@@ -1295,7 +1467,9 @@ function App() {
 
             {currentExercise.type === "multiple_choice" && (
               <div className="exercise-box">
-                <h2>{currentExercise.question}</h2>
+                <div className="gesture-preview quiz-preview">
+                  İşaret görseli / video alanı
+                </div>
 
                 <div className="option-grid">
                   {currentExercise.options.map((option) => {
@@ -1360,7 +1534,7 @@ function App() {
 
                   {!cameraActive && (
                     <div className="camera-overlay">
-                      Kamera goruntusu burada gorunecek.
+                      Kamera görüntüsü burada görünecek.
                     </div>
                   )}
                 </div>
@@ -1370,7 +1544,7 @@ function App() {
 
                   <h3>
                     {handStatus.detected
-                      ? "El algilandi. Temel kontrol yapilabilir."
+                      ? "El algılandı. AI kontrol yapılabilir."
                       : "El bekleniyor."}
                   </h3>
 
@@ -1380,11 +1554,11 @@ function App() {
                       <strong>{currentExercise.expectedGesture}</strong>
                     </div>
                     <div>
-                      <span>Secilen varyant</span>
+                      <span>Seçilen varyant</span>
                       <strong>{activeVariantLabel}</strong>
                     </div>
                     <div>
-                      <span>Gerekli el sayisi</span>
+                      <span>Gerekli el sayısı</span>
                       <strong>{currentExercise.expectedHands || 1}</strong>
                     </div>
                     <div>
@@ -1403,23 +1577,74 @@ function App() {
                           : "gesture-check-result failed"
                       }
                     >
-                      {gestureCheck.message}
+                      <strong>{gestureCheck.message}</strong>
+
+                      {gestureCheck.evaluation && (
+                        <div className="lesson-ai-result">
+                          <div>
+                            <span>Doğrulama modu</span>
+                            <strong>
+                              {gestureCheck.evaluation.mode === "ai"
+                                ? "AI tahmin"
+                                : "Temel kamera kontrolü"}
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>Beklenen hareket</span>
+                            <strong>{gestureCheck.evaluation.expectedGesture}</strong>
+                          </div>
+
+                          <div>
+                            <span>Ham skor</span>
+                            <strong>
+                              {Math.round(gestureCheck.evaluation.expectedRawScore * 100)}%
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>Context bonus</span>
+                            <strong>
+                              +{Math.round(gestureCheck.evaluation.contextBonus * 100)}%
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>Final skor</span>
+                            <strong>
+                              {Math.round(gestureCheck.evaluation.adjustedScore * 100)}%
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+
+                      {gestureCheck.prediction?.scores && (
+                        <div className="lesson-score-list">
+                          {gestureCheck.prediction.scores.slice(0, 5).map((score) => (
+                            <div className="lesson-score-row" key={score.label}>
+                              <span>{score.displayLabel}</span>
+                              <strong>{Math.round(score.confidence * 100)}%</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
                 <div className="camera-action-row">
-                  <button onClick={startCamera}>Kamerayi Ac</button>
+                  <button onClick={startCamera}>Kamerayı Aç</button>
 
                   <button className="secondary-button" onClick={stopCamera}>
-                    Kamerayi Kapat
+                    Kamerayı Kapat
                   </button>
 
                   <button
                     className="success-button"
                     onClick={() => checkGestureExercise(currentExercise)}
+                    disabled={isRecordingSequence}
                   >
-                    Hareketi Kontrol Et
+                    {isRecordingSequence ? "AI kontrol ediyor..." : "AI ile Kontrol Et"}
                   </button>
 
                   <button
@@ -1457,9 +1682,9 @@ function App() {
       <section className="card hero-card">
         <div>
           <p className="eyebrow">Elce MVP</p>
-          <h1>Unite tabanli Turk Isaret Dili egitimi</h1>
+          <h1>Ünite tabanlı Türk İşaret Dili eğitimi</h1>
           <p className="hero-text">
-            Gunluk dersler, unite ilerlemesi, kamera pratigi ve oyunlastirilmis
+            Günlük dersler, ünite ilerlemesi, kamera pratiği ve oyunlaştırılmış
             XP sistemi.
           </p>
         </div>
@@ -1485,179 +1710,122 @@ function App() {
       <section className="card free-practice-card">
         <div>
           <p className="eyebrow">Serbest AI Pratik</p>
-          <h2>Hareket secmeden kamera karsisinda isaret yap</h2>
+          <h2>Hareket seçmeden kamera karşısında işaret yap</h2>
           <p>
-            Bu ekran egitilen modeli kullanarak 3 saniyelik hareketi tahmin eder.
-            Dataset kucuk oldugu icin sonuc demo seviyesinde degerlendirilmelidir.
+            Bu ekran eğitilen modeli kullanarak 3 saniyelik hareketi tahmin eder.
           </p>
         </div>
 
-        <button onClick={openFreePractice}>Pratige Basla</button>
+        <button onClick={openFreePractice}>Pratiğe Başla</button>
       </section>
 
-      <section className="card dataset-card">
-        <div className="section-header">
-          <div>
-            <p className="eyebrow">Dataset Durumu</p>
-            <h2>Hareket ve varyant veri hedefleri</h2>
-          </div>
-
-          {datasetSummary && (
-            <span>
-              {datasetSummary.readyVariants}/{datasetSummary.totalVariants} varyant hazir
-            </span>
-          )}
-        </div>
-
-        {!datasetSummary ? (
-          <p>Dataset ozeti yukleniyor...</p>
-        ) : (
-          <>
-            <div className="dataset-overview">
-              <div>
-                <span>Raw Sequence</span>
-                <strong>{datasetSummary.totalSequences}</strong>
-              </div>
-
-              <div>
-                <span>Normalized</span>
-                <strong>{datasetSummary.totalNormalizedSequences}</strong>
-              </div>
-
-              <div>
-                <span>Varyant Hedefi</span>
-                <strong>{datasetSummary.targetPerVariant}</strong>
-              </div>
-            </div>
-
-            <div className="dataset-list">
-              {datasetSummary.items.map((item) => {
-                const progressPercent = Math.min(
-                  (item.rawCount / item.target) * 100,
-                  100
-                );
-
-                return (
-                  <article className="dataset-item" key={item.label}>
-                    <div className="dataset-item-header">
-                      <div>
-                        <h3>{item.label}</h3>
-                        <p>
-                          Raw: {item.rawCount} / {item.target} | Normalized:{" "}
-                          {item.normalizedCount}
-                        </p>
-                      </div>
-
-                      <span
-                        className={
-                          item.isReady ? "dataset-badge ready" : "dataset-badge"
-                        }
-                      >
-                        {item.isReady ? "Hazir" : `${item.remaining} eksik`}
-                      </span>
-                    </div>
-
-                    <div className="dataset-progress">
-                      <div
-                        className="dataset-progress-fill"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-
-                    <div className="variant-list">
-                      {item.variants.map((variant) => {
-                        const variantPercent = Math.min(
-                          (variant.rawCount / variant.target) * 100,
-                          100
-                        );
-
-                        return (
-                          <div className="variant-item" key={variant.id}>
-                            <div className="variant-item-header">
-                              <div>
-                                <strong>{variant.title}</strong>
-                                <p>
-                                  {variant.rawCount} / {variant.target} raw |{" "}
-                                  {variant.normalizedCount} normalized
-                                </p>
-                              </div>
-
-                              <span
-                                className={
-                                  variant.isReady
-                                    ? "dataset-badge ready"
-                                    : "dataset-badge"
-                                }
-                              >
-                                {variant.isReady ? "Hazir" : `${variant.remaining} eksik`}
-                              </span>
-                            </div>
-
-                            <div className="dataset-progress small">
-                              <div
-                                className="dataset-progress-fill"
-                                style={{ width: `${variantPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </section>
-
-      <section className="card">
+      <section className="card learning-path-card">
         <p className="eyebrow">Ders Yolu</p>
-        <h2>Uniteler</h2>
+        <h2>Ünite Yolu</h2>
+        <p className="path-description">
+          Bir sonraki üniteye geçmek için mevcut ünitenin en az %60'ını tamamla.
+          Ünite açıldığında içindeki tüm derslere erişebilirsin.
+        </p>
 
-        <div className="unit-list">
-          {units.map((unit) => (
-            <article className="unit-card" key={unit.id}>
-              <div>
-                <p className="eyebrow">Unite {unit.id}</p>
-                <h3>{unit.title}</h3>
-                <p>{unit.description}</p>
-              </div>
+        <div className="learning-path">
+          {units.map((unit, unitIndex) => {
+            const unitUnlocked = isUnitUnlocked(unitIndex);
+            const completedCount = getCompletedLessonCount(unit);
+            const requiredCount = getRequiredLessonCount(unit);
+            const progressPercent = getUnitProgressPercent(unit);
 
-              <div className="lesson-list">
-                {unit.lessons.map((lesson) => {
-                  const isCompleted = progress.completedUnitLessons.includes(
-                    lesson.id
-                  );
+            return (
+              <article
+                className={
+                  unitUnlocked
+                    ? "path-unit-card"
+                    : "path-unit-card locked-unit-card"
+                }
+                key={unit.id}
+              >
+                <div className="path-unit-header">
+                  <div>
+                    <p className="eyebrow">Ünite {unit.id}</p>
+                    <h3>{unit.title}</h3>
+                    <p>{unit.description}</p>
+                  </div>
 
-                  return (
-                    <button
-                      key={lesson.id}
-                      className={
-                        isCompleted ? "lesson-pill completed" : "lesson-pill"
-                      }
-                      onClick={() => openLesson(lesson.id)}
-                    >
-                      <span>{lesson.title}</span>
-                      <small>
-                        {isCompleted ? "Tamamlandi" : `${lesson.xp} XP`}
-                      </small>
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          ))}
+                  <div className="unit-progress-summary">
+                    <strong>{progressPercent}%</strong>
+                    <span>
+                      {completedCount}/{unit.lessons.length} ders
+                    </span>
+                  </div>
+                </div>
+
+                <div className="unit-progress-track">
+                  <div
+                    className="unit-progress-track-fill"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                <div className="unit-unlock-rule">
+                  {unitUnlocked ? (
+                    <span>
+                      Sonraki ünite için hedef: {requiredCount} ders tamamla.
+                    </span>
+                  ) : (
+                    <span>{getUnitLockMessage(unitIndex)}</span>
+                  )}
+                </div>
+
+                <div className="duo-path">
+                  {unit.lessons.map((lesson, lessonIndex) => {
+                    const lessonState = getLessonState(unitUnlocked, lesson);
+                    const isDisabled = lessonState === "locked";
+                    const isLeft = lessonIndex % 2 === 0;
+
+                    return (
+                      <div
+                        className={
+                          isLeft
+                            ? "duo-path-row duo-path-row-left"
+                            : "duo-path-row duo-path-row-right"
+                        }
+                        key={lesson.id}
+                      >
+                        <button
+                          className={`duo-lesson-node ${lessonState}`}
+                          onClick={() => openLesson(lesson.id)}
+                          disabled={isDisabled}
+                        >
+                          <span className="duo-node-icon">
+                            {lessonState === "completed"
+                              ? "✓"
+                              : lessonState === "open"
+                                ? "☂"
+                                : "🔒"}
+                          </span>
+                        </button>
+
+                        <div className="duo-lesson-info">
+                          <strong>{lesson.title}</strong>
+                          <span>{getLessonStateText(lessonState)}</span>
+                          <small>{lesson.xp} XP</small>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       <section className="card">
-        <p className="eyebrow">Basarilar</p>
+        <p className="eyebrow">Başarılar</p>
         <h2>Rozetler</h2>
 
         <div className="badges">
           {progress.badges.length === 0 ? (
-            <p>Henuz rozet kazanilmadi.</p>
+            <p>Henüz rozet kazanılmadı.</p>
           ) : (
             progress.badges.map((badge) => (
               <span className="badge" key={badge}>
