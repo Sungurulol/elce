@@ -304,6 +304,150 @@ function App() {
     };
   }
 
+  function getCompletedLessonCount(unit) {
+    return unit.lessons.filter((lesson) =>
+      progress.completedUnitLessons.includes(lesson.id)
+    ).length;
+  }
+
+  function getUnitTotalXp(unit) {
+    return unit.lessons.reduce((total, lesson) => total + (lesson.xp || 0), 0);
+  }
+
+  function getUnitRequiredXp(unit) {
+    return Math.ceil(getUnitTotalXp(unit) * 0.6);
+  }
+
+  function getUnitEarnedXp(unit) {
+    return unit.lessons.reduce((total, lesson) => {
+      const isCompleted = progress.completedUnitLessons.includes(lesson.id);
+
+      if (!isCompleted) {
+        return total;
+      }
+
+      return total + (lesson.xp || 0);
+    }, 0);
+  }
+
+  function getRequiredXpForLevel(level) {
+    if (level <= 1) {
+      return 0;
+    }
+
+    let requiredXp = 0;
+
+    for (let i = 0; i < level - 1; i++) {
+      const unit = units[i];
+
+      if (!unit) {
+        break;
+      }
+
+      requiredXp += getUnitRequiredXp(unit);
+    }
+
+    return requiredXp;
+  }
+
+  function getUserLevel() {
+    if (!units || units.length === 0) {
+      return 1;
+    }
+
+    let level = 1;
+
+    for (let nextLevel = 2; nextLevel <= units.length; nextLevel++) {
+      const requiredXp = getRequiredXpForLevel(nextLevel);
+
+      if (progress.xp >= requiredXp) {
+        level = nextLevel;
+      }
+    }
+
+    return level;
+  }
+
+  function getNextLevelInfo() {
+    const currentLevel = getUserLevel();
+    const nextLevel = currentLevel + 1;
+
+    if (nextLevel > units.length) {
+      return {
+        hasNextLevel: false,
+        currentLevel,
+        nextLevel,
+        requiredXp: progress.xp,
+        remainingXp: 0,
+        progressPercent: 100,
+      };
+    }
+
+    const currentLevelXp = getRequiredXpForLevel(currentLevel);
+    const nextLevelXp = getRequiredXpForLevel(nextLevel);
+    const levelRange = Math.max(1, nextLevelXp - currentLevelXp);
+    const earnedInLevel = Math.max(0, progress.xp - currentLevelXp);
+
+    return {
+      hasNextLevel: true,
+      currentLevel,
+      nextLevel,
+      requiredXp: nextLevelXp,
+      remainingXp: Math.max(0, nextLevelXp - progress.xp),
+      progressPercent: Math.min(100, Math.round((earnedInLevel / levelRange) * 100)),
+    };
+  }
+
+  function getUnitProgressPercent(unit) {
+    const earnedXp = getUnitEarnedXp(unit);
+    const totalXp = getUnitTotalXp(unit);
+
+    if (totalXp === 0) {
+      return 0;
+    }
+
+    return Math.round((earnedXp / totalXp) * 100);
+  }
+
+  function isUnitUnlocked(unitIndex) {
+    const userLevel = getUserLevel();
+    return unitIndex + 1 <= userLevel;
+  }
+
+  function getUnitLockMessage(unitIndex) {
+    const requiredLevel = unitIndex + 1;
+    const requiredXp = getRequiredXpForLevel(requiredLevel);
+    const remainingXp = Math.max(0, requiredXp - progress.xp);
+
+    return `Bu ünite Seviye ${requiredLevel} ile açılır. Gerekli XP: ${requiredXp}. Kalan XP: ${remainingXp}.`;
+  }
+
+  function getLessonState(unitUnlocked, lesson) {
+    const isCompleted = progress.completedUnitLessons.includes(lesson.id);
+
+    if (isCompleted) {
+      return "completed";
+    }
+
+    if (unitUnlocked) {
+      return "open";
+    }
+
+    return "locked";
+  }
+
+  function getLessonStateText(state) {
+    if (state === "completed") {
+      return "Tamamlandı";
+    }
+
+    if (state === "open") {
+      return "Açık";
+    }
+
+    return "Kilitli";
+  }
+
   async function setupHandLandmarker() {
     if (handLandmarkerRef.current) {
       return;
@@ -396,8 +540,15 @@ function App() {
     try {
       const lessonData = await fetchJson(`${API_URL}/lesson-flow/${lessonId}`);
 
+      const filteredLessonData = {
+        ...lessonData,
+        exercises: lessonData.exercises.filter((exercise) => {
+          return exercise.type !== "multiple_choice";
+        }),
+      };
+
       setFreePracticeActive(false);
-      setSelectedLesson(lessonData);
+      setSelectedLesson(filteredLessonData);
       setExerciseIndex(0);
       setSelectedOption("");
       setSelectedVariantLabel("");
@@ -1110,86 +1261,6 @@ function App() {
     };
   }, []);
 
-  function getCompletedLessonCount(unit) {
-    return unit.lessons.filter((lesson) =>
-      progress.completedUnitLessons.includes(lesson.id)
-    ).length;
-  }
-
-  function getRequiredLessonCount(unit) {
-    return Math.ceil(unit.lessons.length * 0.6);
-  }
-
-  function getUnitProgressPercent(unit) {
-    const completedCount = getCompletedLessonCount(unit);
-
-    if (unit.lessons.length === 0) {
-      return 0;
-    }
-
-    return Math.round((completedCount / unit.lessons.length) * 100);
-  }
-
-  function isUnitUnlocked(unitIndex) {
-    if (unitIndex === 0) {
-      return true;
-    }
-
-    const previousUnit = units[unitIndex - 1];
-
-    if (!previousUnit) {
-      return false;
-    }
-
-    const previousCompletedCount = getCompletedLessonCount(previousUnit);
-    const requiredCount = getRequiredLessonCount(previousUnit);
-
-    return previousCompletedCount >= requiredCount;
-  }
-
-  function getUnitLockMessage(unitIndex) {
-    if (unitIndex === 0) {
-      return "";
-    }
-
-    const previousUnit = units[unitIndex - 1];
-
-    if (!previousUnit) {
-      return "Önceki ünite bulunamadı.";
-    }
-
-    const previousCompletedCount = getCompletedLessonCount(previousUnit);
-    const requiredCount = getRequiredLessonCount(previousUnit);
-
-    return `${previousUnit.title} ünitesinden en az ${requiredCount} ders tamamla. Şu an: ${previousCompletedCount}/${previousUnit.lessons.length}`;
-  }
-
-  function getLessonState(unitUnlocked, lesson) {
-    const isCompleted = progress.completedUnitLessons.includes(lesson.id);
-
-    if (isCompleted) {
-      return "completed";
-    }
-
-    if (unitUnlocked) {
-      return "open";
-    }
-
-    return "locked";
-  }
-
-  function getLessonStateText(state) {
-    if (state === "completed") {
-      return "Tamamlandı";
-    }
-
-    if (state === "open") {
-      return "Açık";
-    }
-
-    return "Kilitli";
-  }
-
   function renderAiStatusPanel() {
     return (
       <div className="ai-status-box">
@@ -1467,6 +1538,8 @@ function App() {
 
             {currentExercise.type === "multiple_choice" && (
               <div className="exercise-box">
+                <h2>{currentExercise.question}</h2>
+
                 <div className="gesture-preview quiz-preview">
                   İşaret görseli / video alanı
                 </div>
@@ -1677,10 +1750,12 @@ function App() {
     );
   }
 
+  const levelInfo = getNextLevelInfo();
+
   return (
     <main className="container">
-      <section className="card hero-card">
-        <div>
+      <section className="card hero-card hero-with-profile">
+        <div className="hero-copy">
           <p className="eyebrow">Elce MVP</p>
           <h1>Ünite tabanlı Türk İşaret Dili eğitimi</h1>
           <p className="hero-text">
@@ -1689,22 +1764,50 @@ function App() {
           </p>
         </div>
 
-        <div className="stats">
-          <div className="stat-box">
-            <span>XP</span>
-            <strong>{progress.xp}</strong>
+        <aside className="profile-stats-card">
+          <div className="profile-header">
+            <div className="profile-avatar">E</div>
+
+            <div>
+              <p className="eyebrow">Profil</p>
+              <h2>Öğrenci Profili</h2>
+            </div>
           </div>
 
-          <div className="stat-box">
-            <span>Streak</span>
-            <strong>{progress.streak}</strong>
+          <div className="profile-level-box">
+            <span>Seviye</span>
+            <strong>{getUserLevel()}</strong>
+            <small>
+              {levelInfo.hasNextLevel
+                ? `Seviye ${levelInfo.nextLevel} için ${levelInfo.remainingXp} XP kaldı`
+                : "Maksimum seviyedesin"}
+            </small>
           </div>
 
-          <div className="stat-box">
-            <span>Rozet</span>
-            <strong>{progress.badges.length}</strong>
+          <div className="profile-level-track">
+            <div
+              className="profile-level-track-fill"
+              style={{ width: `${levelInfo.progressPercent}%` }}
+            />
           </div>
-        </div>
+
+          <div className="profile-stat-grid">
+            <div>
+              <span>XP</span>
+              <strong>{progress.xp}</strong>
+            </div>
+
+            <div>
+              <span>Streak</span>
+              <strong>{progress.streak}</strong>
+            </div>
+
+            <div>
+              <span>Rozet</span>
+              <strong>{progress.badges.length}</strong>
+            </div>
+          </div>
+        </aside>
       </section>
 
       <section className="card free-practice-card">
@@ -1723,15 +1826,14 @@ function App() {
         <p className="eyebrow">Ders Yolu</p>
         <h2>Ünite Yolu</h2>
         <p className="path-description">
-          Bir sonraki üniteye geçmek için mevcut ünitenin en az %60'ını tamamla.
-          Ünite açıldığında içindeki tüm derslere erişebilirsin.
+          XP kazanarak seviye atla. Seviye 2, Ünite 2'yi; Seviye 3, Ünite 3'ü açar.
+          Her seviye için önceki ünitenin yaklaşık %60 XP hedefi gerekir.
         </p>
 
         <div className="learning-path">
           {units.map((unit, unitIndex) => {
             const unitUnlocked = isUnitUnlocked(unitIndex);
             const completedCount = getCompletedLessonCount(unit);
-            const requiredCount = getRequiredLessonCount(unit);
             const progressPercent = getUnitProgressPercent(unit);
 
             return (
@@ -1753,7 +1855,7 @@ function App() {
                   <div className="unit-progress-summary">
                     <strong>{progressPercent}%</strong>
                     <span>
-                      {completedCount}/{unit.lessons.length} ders
+                      {getUnitEarnedXp(unit)}/{getUnitTotalXp(unit)} XP
                     </span>
                   </div>
                 </div>
@@ -1768,7 +1870,7 @@ function App() {
                 <div className="unit-unlock-rule">
                   {unitUnlocked ? (
                     <span>
-                      Sonraki ünite için hedef: {requiredCount} ders tamamla.
+                      Bu ünite açık. Sonraki seviye için XP kazanmaya devam et.
                     </span>
                   ) : (
                     <span>{getUnitLockMessage(unitIndex)}</span>
