@@ -6,6 +6,9 @@ from datetime import datetime
 import json
 from pathlib import Path
 
+import joblib
+import numpy as np
+
 
 app = FastAPI(title="Elce API")
 
@@ -21,6 +24,7 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
+MODELS_DIR = BASE_DIR / "models"
 
 LESSONS_FILE = DATA_DIR / "lessons.json"
 SCENARIOS_FILE = DATA_DIR / "scenarios.json"
@@ -30,8 +34,14 @@ GESTURE_SAMPLES_FILE = DATA_DIR / "gesture_samples.json"
 GESTURE_SEQUENCES_FILE = DATA_DIR / "gesture_sequences.json"
 NORMALIZED_SEQUENCES_FILE = DATA_DIR / "normalized_sequences.json"
 
+MODEL_FILE = MODELS_DIR / "gesture_model.pkl"
+LABEL_MAP_FILE = MODELS_DIR / "label_map.json"
+
 
 TARGET_FRAME_COUNT = 60
+EXPECTED_FEATURE_LENGTH = 280
+EXPECTED_FLAT_FEATURE_LENGTH = TARGET_FRAME_COUNT * EXPECTED_FEATURE_LENGTH
+
 MAX_HANDS = 2
 HAND_LANDMARK_COUNT = 21
 MOUTH_LANDMARK_COUNT = 40
@@ -60,6 +70,10 @@ BLENDSHAPE_NAMES = [
 ]
 
 
+gesture_model_cache = None
+label_map_cache = None
+
+
 class GestureSample(BaseModel):
     label: str
     variantLabel: str | None = None
@@ -74,6 +88,12 @@ class GestureSequence(BaseModel):
     variantLabel: str | None = None
     lessonId: int
     expectedHands: int
+    durationMs: int
+    frameCount: int
+    frames: list[dict[str, Any]]
+
+
+class PredictGestureRequest(BaseModel):
     durationMs: int
     frameCount: int
     frames: list[dict[str, Any]]
@@ -137,6 +157,9 @@ def safe_float(value):
 
 
 def point_to_vector(point):
+    if not point:
+        return [0.0, 0.0, 0.0]
+
     return [
         safe_float(point.get("x")),
         safe_float(point.get("y")),
@@ -233,12 +256,14 @@ def normalize_single_frame(frame):
     blendshape_vector = normalize_blendshapes(frame)
     pose_vector = normalize_pose_landmarks(frame)
 
+    features = hand_vector + mouth_vector + blendshape_vector + pose_vector
+
     return {
         "timestampMs": int(frame.get("timestampMs", 0)),
         "handCount": int(frame.get("handCount", 0)),
         "faceDetected": bool((frame.get("face") or {}).get("detected", False)),
         "poseDetected": bool((frame.get("pose") or {}).get("detected", False)),
-        "features": hand_vector + mouth_vector + blendshape_vector + pose_vector,
+        "features": features,
     }
 
 
@@ -325,6 +350,94 @@ def normalize_sequence(sequence):
         "frames": normalized_frames,
         "createdAt": datetime.now().isoformat(),
     }
+
+
+def flatten_normalized_frames(normalized_frames):
+    flat_features = []
+
+    for frame in normalized_frames:
+        features = frame.get("features", [])
+
+        if len(features) != EXPECTED_FEATURE_LENGTH:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Feature length mismatch. "
+                    f"Expected {EXPECTED_FEATURE_LENGTH}, got {len(features)}"
+                ),
+            )
+
+        flat_features.extend(features)
+
+    if len(flat_features) != EXPECTED_FLAT_FEATURE_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Flat feature length mismatch. "
+                f"Expected {EXPECTED_FLAT_FEATURE_LENGTH}, got {len(flat_features)}"
+            ),
+        )
+
+    return flat_features
+
+
+def normalize_frames_for_prediction(frames):
+    sampled_frames = resample_frames(frames, TARGET_FRAME_COUNT)
+    normalized_frames = [normalize_single_frame(frame) for frame in sampled_frames]
+    flat_features = flatten_normalized_frames(normalized_frames)
+
+    return normalized_frames, flat_features
+
+
+def load_gesture_model():
+    global gesture_model_cache
+
+    if gesture_model_cache is not None:
+        return gesture_model_cache
+
+    if not MODEL_FILE.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="gesture_model.pkl bulunamadi. Once python backend/train_model.py calistir.",
+        )
+
+    gesture_model_cache = joblib.load(MODEL_FILE)
+    return gesture_model_cache
+
+
+def load_label_map():
+    global label_map_cache
+
+    if label_map_cache is not None:
+        return label_map_cache
+
+    if not LABEL_MAP_FILE.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="label_map.json bulunamadi. Once python backend/train_model.py calistir.",
+        )
+
+    label_map_cache = read_json(LABEL_MAP_FILE)
+    return label_map_cache
+
+
+def label_to_display_label(label):
+    if not label:
+        return "Bilinmeyen"
+
+    base_label = label
+
+    if "_v" in base_label:
+        base_label = base_label.split("_v")[0]
+
+    display_map = {
+        "merhaba": "Merhaba",
+        "tesekkurler": "Tesekkurler",
+        "yardim": "Yardim",
+        "hastane": "Hastane",
+    }
+
+    return display_map.get(base_label, base_label.replace("_", " ").title())
 
 
 def get_camera_gestures_from_units():
@@ -768,6 +881,76 @@ def normalize_sequences():
         "sourceCount": len(raw_sequences),
         "normalizedCount": len(normalized_sequences),
         "targetFrameCount": TARGET_FRAME_COUNT,
+    }
+
+
+@app.post("/predict-gesture")
+def predict_gesture(request: PredictGestureRequest):
+    if not request.frames:
+        raise HTTPException(status_code=400, detail="Frame bulunamadi.")
+
+    model = load_gesture_model()
+    load_label_map()
+
+    normalized_frames, flat_features = normalize_frames_for_prediction(request.frames)
+
+    input_array = np.array([flat_features], dtype=np.float32)
+
+    prediction = model.predict(input_array)[0]
+
+    scores = []
+
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba(input_array)[0]
+        classes = list(model.classes_)
+
+        for label, probability in zip(classes, probabilities):
+            scores.append({
+                "label": label,
+                "displayLabel": label_to_display_label(label),
+                "confidence": float(probability),
+            })
+
+        scores.sort(key=lambda item: item["confidence"], reverse=True)
+    else:
+        scores.append({
+            "label": prediction,
+            "displayLabel": label_to_display_label(prediction),
+            "confidence": 1.0,
+        })
+
+    best_score = scores[0] if scores else {
+        "label": prediction,
+        "displayLabel": label_to_display_label(prediction),
+        "confidence": 0.0,
+    }
+
+    frames_with_hands = sum(
+        1 for frame in request.frames if int(frame.get("handCount", 0)) > 0
+    )
+    frames_with_face = sum(
+        1 for frame in request.frames if bool((frame.get("face") or {}).get("detected", False))
+    )
+    frames_with_pose = sum(
+        1 for frame in request.frames if bool((frame.get("pose") or {}).get("detected", False))
+    )
+
+    return {
+        "prediction": prediction,
+        "displayLabel": label_to_display_label(prediction),
+        "confidence": float(best_score["confidence"]),
+        "scores": scores,
+        "inputSummary": {
+            "durationMs": request.durationMs,
+            "sourceFrameCount": request.frameCount,
+            "targetFrameCount": TARGET_FRAME_COUNT,
+            "featureLength": EXPECTED_FEATURE_LENGTH,
+            "flatFeatureLength": EXPECTED_FLAT_FEATURE_LENGTH,
+            "framesWithHands": frames_with_hands,
+            "framesWithFace": frames_with_face,
+            "framesWithPose": frames_with_pose,
+            "normalizedFrameCount": len(normalized_frames),
+        },
     }
 
 

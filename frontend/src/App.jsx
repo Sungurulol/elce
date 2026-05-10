@@ -99,7 +99,16 @@ function App() {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      throw new Error("Istek basarisiz oldu");
+      let detail = "Istek basarisiz oldu";
+
+      try {
+        const errorData = await response.json();
+        detail = errorData.detail || detail;
+      } catch (err) {
+        detail = "Istek basarisiz oldu";
+      }
+
+      throw new Error(detail);
     }
 
     return response.json();
@@ -814,7 +823,7 @@ function App() {
     setPracticeResult(null);
     setPracticeStatus("3 saniyelik serbest hareket aliniyor. Hareketi yap.");
 
-    setTimeout(() => {
+    setTimeout(async () => {
       isRecordingSequenceRef.current = false;
       setIsRecordingSequence(false);
 
@@ -851,20 +860,53 @@ function App() {
         );
       });
 
-      setPracticeResult({
-        frameCount: frames.length,
-        durationMs,
-        framesWithHands,
-        framesWithFace,
-        framesWithPose,
-        maxHandCount,
-        hasVisibleUpperBody,
-        modelConnected: false,
-      });
+      setPracticeStatus("Hareket alindi. Model tahmini isteniyor...");
 
-      setPracticeStatus(
-        "Hareket alindi. Gercek model tahmini 21. adimda baglanacak."
-      );
+      try {
+        const prediction = await fetchJson(`${API_URL}/predict-gesture`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            durationMs,
+            frameCount: frames.length,
+            frames,
+          }),
+        });
+
+        setPracticeResult({
+          frameCount: frames.length,
+          durationMs,
+          framesWithHands,
+          framesWithFace,
+          framesWithPose,
+          maxHandCount,
+          hasVisibleUpperBody,
+          modelConnected: true,
+          prediction,
+        });
+
+        setPracticeStatus(
+          `Tahmin tamamlandi: ${prediction.displayLabel} (${Math.round(
+            prediction.confidence * 100
+          )}%)`
+        );
+      } catch (err) {
+        setPracticeResult({
+          frameCount: frames.length,
+          durationMs,
+          framesWithHands,
+          framesWithFace,
+          framesWithPose,
+          maxHandCount,
+          hasVisibleUpperBody,
+          modelConnected: false,
+          predictionError: err.message,
+        });
+
+        setPracticeStatus(`Model tahmini alinamadi: ${err.message}`);
+      }
     }, durationMs);
   }
 
@@ -1059,6 +1101,8 @@ function App() {
   }
 
   if (freePracticeActive) {
+    const prediction = practiceResult?.prediction;
+
     return (
       <main className="container lesson-page">
         <section className="card lesson-shell">
@@ -1078,8 +1122,8 @@ function App() {
             <p className="eyebrow">Serbest AI Pratik</p>
             <h1>Hareketi secmeden kamerada isaret yap</h1>
             <p className="hero-text">
-              Bu ekran 21. adimda modele baglanacak. Simdilik 3 saniyelik
-              hareket akisini toplar ve analiz icin hazirlar.
+              Bu ekran 21. adimda egitilen modele baglandi. 3 saniyelik
+              hareketi alir, backend'e yollar ve tahmin sonucunu gosterir.
             </p>
 
             <div className="camera-live-box">
@@ -1106,7 +1150,7 @@ function App() {
                 onClick={analyzeFreePracticeMovement}
                 disabled={isRecordingSequence}
               >
-                {isRecordingSequence ? "Analiz icin aliniyor..." : "3 sn Hareketi Analiz Et"}
+                {isRecordingSequence ? "Analiz icin aliniyor..." : "3 sn Hareketi Tahmin Et"}
               </button>
             </div>
 
@@ -1118,8 +1162,33 @@ function App() {
 
             {practiceResult && (
               <div className="practice-result-card">
-                <p className="eyebrow">Analiz Ozeti</p>
-                <h2>Hareket kaydi hazir</h2>
+                <p className="eyebrow">AI Tahmin Sonucu</p>
+
+                {prediction ? (
+                  <>
+                    <div className="prediction-hero">
+                      <span>Tahmin</span>
+                      <strong>{prediction.displayLabel}</strong>
+                      <small>Model etiketi: {prediction.prediction}</small>
+                    </div>
+
+                    <div className="confidence-bar">
+                      <div
+                        className="confidence-bar-fill"
+                        style={{ width: `${Math.round(prediction.confidence * 100)}%` }}
+                      />
+                    </div>
+
+                    <p>
+                      Guven: <strong>{Math.round(prediction.confidence * 100)}%</strong>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2>Model tahmini alinamadi</h2>
+                    <p>{practiceResult.predictionError || "Bilinmeyen hata"}</p>
+                  </>
+                )}
 
                 <div className="practice-result-grid">
                   <div>
@@ -1153,10 +1222,25 @@ function App() {
                   </div>
                 </div>
 
-                <p>
-                  Model tahmini henuz bagli degil. 21. adimda bu kayit backend'e
-                  gonderilecek ve egitilen modelden gercek tahmin alinacak.
-                </p>
+                {prediction?.scores && prediction.scores.length > 0 && (
+                  <div className="score-list">
+                    <p className="eyebrow">Diger ihtimaller</p>
+
+                    {prediction.scores.slice(0, 6).map((score) => (
+                      <div className="score-row" key={score.label}>
+                        <span>{score.displayLabel}</span>
+                        <strong>{Math.round(score.confidence * 100)}%</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {practiceResult.modelConnected && (
+                  <p>
+                    Model backend uzerinden gercek tahmin dondurdu. Dataset kucuk oldugu
+                    icin sonuc demo seviyesinde degerlendirilmeli.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1403,9 +1487,8 @@ function App() {
           <p className="eyebrow">Serbest AI Pratik</p>
           <h2>Hareket secmeden kamera karsisinda isaret yap</h2>
           <p>
-            Bu ekran 21. adimda egitilen modele baglanacak. Simdilik derslerden
-            bagimsiz 3 saniyelik hareket akisini toplar ve analiz hazirligini
-            gosterir.
+            Bu ekran egitilen modeli kullanarak 3 saniyelik hareketi tahmin eder.
+            Dataset kucuk oldugu icin sonuc demo seviyesinde degerlendirilmelidir.
           </p>
         </div>
 

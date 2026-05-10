@@ -905,3 +905,79 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.prediction-hero {
+  background: white;
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 14px 0;
+}
+
+.prediction-hero span {
+  display: block;
+  color: #64748b;
+  font-weight: 900;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.prediction-hero strong {
+  display: block;
+  color: #172033;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.prediction-hero small {
+  display: block;
+  color: #64748b;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.confidence-bar {
+  width: 100%;
+  height: 12px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+}
+
+.score-list {
+  margin-top: 18px;
+  background: white;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 0;
+}
+
+.score-row:last-child {
+  border-bottom: none;
+}
+
+.score-row span {
+  color: #334155;
+  font-weight: 800;
+}
+
+.score-row strong {
+  color: #172033;
+}
