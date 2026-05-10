@@ -1,26 +1,21 @@
 {
+  "labelMode": "base_label",
   "labels": [
-    "hastane_v1",
-    "merhaba_v1",
-    "tesekkurler_v1",
-    "tesekkurler_v2",
-    "tesekkurler_v3",
-    "yardim_v1"
+    "hastane",
+    "merhaba",
+    "tesekkurler",
+    "yardim"
   ],
   "labelToIndex": {
-    "hastane_v1": 0,
-    "merhaba_v1": 1,
-    "tesekkurler_v1": 2,
-    "tesekkurler_v2": 3,
-    "tesekkurler_v3": 4,
-    "yardim_v1": 5
+    "hastane": 0,
+    "merhaba": 1,
+    "tesekkurler": 2,
+    "yardim": 3
   },
   "indexToLabel": {
-    "0": "hastane_v1",
-    "1": "merhaba_v1",
-    "2": "tesekkurler_v1",
-    "3": "tesekkurler_v2",
-    "4": "tesekkurler_v3",
-    "5": "yardim_v1"
+    "0": "hastane",
+    "1": "merhaba",
+    "2": "tesekkurler",
+    "3": "yardim"
   }
 }

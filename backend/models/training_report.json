@@ -1,16 +1,15 @@
 {
   "dataset": {
     "sourceFile": "/Users/sunguru/Desktop/Elce/backend/data/normalized_sequences.json",
-    "totalSequencesInFile": 30,
-    "usableSequences": 30,
+    "labelMode": "base_label",
+    "totalSequencesInFile": 42,
+    "usableSequences": 42,
     "flatFeatureLength": 16800,
     "labelCounts": {
-      "merhaba_v1": 5,
-      "tesekkurler_v1": 5,
-      "tesekkurler_v2": 5,
-      "tesekkurler_v3": 5,
-      "yardim_v1": 5,
-      "hastane_v1": 5
+      "merhaba": 7,
+      "tesekkurler": 21,
+      "yardim": 7,
+      "hastane": 7
     },
     "metadata": [
       {
@@ -312,6 +311,126 @@
         "targetFrameCount": 60,
         "featureLength": 280,
         "flatFeatureLength": 16800
+      },
+      {
+        "id": 31,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 157,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 32,
+        "label": "merhaba",
+        "variantLabel": "merhaba_v1",
+        "lessonId": 101,
+        "sourceFrameCount": 221,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 33,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 172,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 34,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v1",
+        "lessonId": 102,
+        "sourceFrameCount": 172,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 35,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 179,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 36,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v2",
+        "lessonId": 102,
+        "sourceFrameCount": 168,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 37,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 174,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 38,
+        "label": "tesekkurler",
+        "variantLabel": "tesekkurler_v3",
+        "lessonId": 102,
+        "sourceFrameCount": 173,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 39,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 162,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 40,
+        "label": "yardim",
+        "variantLabel": "yardim_v1",
+        "lessonId": 201,
+        "sourceFrameCount": 160,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 41,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
+      },
+      {
+        "id": 42,
+        "label": "hastane",
+        "variantLabel": "hastane_v1",
+        "lessonId": 202,
+        "sourceFrameCount": 161,
+        "targetFrameCount": 60,
+        "featureLength": 280,
+        "flatFeatureLength": 16800
       }
     ]
   },
@@ -319,118 +438,80 @@
     "modelType": "RandomForestClassifier",
     "randomState": 42,
     "testSize": 0.25,
-    "trainSize": 22,
-    "testSizeCount": 8,
+    "trainSize": 31,
+    "testSizeCount": 11,
     "trainAccuracy": 1.0,
-    "testAccuracy": 1.0
+    "testAccuracy": 0.8181818181818182
   },
   "labels": [
-    "hastane_v1",
-    "merhaba_v1",
-    "tesekkurler_v1",
-    "tesekkurler_v2",
-    "tesekkurler_v3",
-    "yardim_v1"
+    "hastane",
+    "merhaba",
+    "tesekkurler",
+    "yardim"
   ],
   "classificationReport": {
-    "hastane_v1": {
+    "hastane": {
       "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 1.0
+      "recall": 0.5,
+      "f1-score": 0.6666666666666666,
+      "support": 2.0
     },
-    "merhaba_v1": {
+    "merhaba": {
       "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 1.0
+      "recall": 0.5,
+      "f1-score": 0.6666666666666666,
+      "support": 2.0
     },
-    "tesekkurler_v1": {
-      "precision": 1.0,
+    "tesekkurler": {
+      "precision": 0.7142857142857143,
       "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 1.0
+      "f1-score": 0.8333333333333334,
+      "support": 5.0
     },
-    "tesekkurler_v2": {
+    "yardim": {
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
       "support": 2.0
     },
-    "tesekkurler_v3": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 2.0
-    },
-    "yardim_v1": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 1.0
-    },
-    "accuracy": 1.0,
+    "accuracy": 0.8181818181818182,
     "macro avg": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 8.0
+      "precision": 0.9285714285714286,
+      "recall": 0.75,
+      "f1-score": 0.7916666666666666,
+      "support": 11.0
     },
     "weighted avg": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 8.0
+      "precision": 0.8701298701298701,
+      "recall": 0.8181818181818182,
+      "f1-score": 0.8030303030303031,
+      "support": 11.0
     }
   },
   "confusionMatrix": [
     [
       1,
       0,
-      0,
-      0,
-      0,
+      1,
       0
     ],
     [
       0,
       1,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
       1,
+      0
+    ],
+    [
       0,
       0,
+      5,
       0
     ],
     [
       0,
       0,
       0,
-      2,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      2,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      1
+      2
     ]
   ]
 }

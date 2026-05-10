@@ -22,6 +22,8 @@ TRAINING_REPORT_FILE = MODELS_DIR / "training_report.json"
 RANDOM_STATE = 42
 TEST_SIZE = 0.25
 
+LABEL_MODE = "base_label"
+
 
 def read_json(file_path):
     if not file_path.exists():
@@ -57,16 +59,19 @@ def flatten_sequence(sequence):
     return flat_features
 
 
-def get_sequence_label(sequence):
-    variant_label = sequence.get("variantLabel")
-
-    if variant_label:
-        return variant_label
-
+def get_base_label(sequence):
     label = sequence.get("label")
 
     if label:
-        return f"{label}_v1"
+        return label
+
+    variant_label = sequence.get("variantLabel")
+
+    if variant_label and "_v" in variant_label:
+        return variant_label.split("_v")[0]
+
+    if variant_label:
+        return variant_label
 
     return "unknown"
 
@@ -81,7 +86,8 @@ def build_dataset(sequences):
 
     for sequence in sequences:
         sequence_id = sequence.get("id")
-        label = get_sequence_label(sequence)
+        label = get_base_label(sequence)
+        variant_label = sequence.get("variantLabel")
         frames = sequence.get("frames", [])
 
         if not frames:
@@ -117,8 +123,8 @@ def build_dataset(sequences):
         y_data.append(label)
         metadata.append({
             "id": sequence_id,
-            "label": sequence.get("label"),
-            "variantLabel": label,
+            "label": label,
+            "variantLabel": variant_label,
             "lessonId": sequence.get("lessonId"),
             "sourceFrameCount": sequence.get("sourceFrameCount"),
             "targetFrameCount": target_frame_count,
@@ -175,7 +181,7 @@ def train_model(x_data, y_data):
     )
 
     model = RandomForestClassifier(
-        n_estimators=300,
+        n_estimators=400,
         random_state=RANDOM_STATE,
         class_weight="balanced",
         max_depth=None,
@@ -222,6 +228,7 @@ def build_report(sequences, x_data, y_data, metadata, train_result, labels):
     report = {
         "dataset": {
             "sourceFile": str(NORMALIZED_SEQUENCES_FILE),
+            "labelMode": LABEL_MODE,
             "totalSequencesInFile": len(sequences),
             "usableSequences": int(len(x_data)),
             "flatFeatureLength": int(x_data.shape[1]),
@@ -251,6 +258,7 @@ def save_outputs(model, labels, label_to_index, index_to_label, report):
     joblib.dump(model, MODEL_FILE)
 
     label_map = {
+        "labelMode": LABEL_MODE,
         "labels": labels,
         "labelToIndex": label_to_index,
         "indexToLabel": index_to_label,
@@ -265,6 +273,7 @@ def print_summary(report):
     print("Elce gesture model training completed")
     print("-" * 48)
 
+    print(f"Label mode: {report['dataset']['labelMode']}")
     print(f"Usable sequences: {report['dataset']['usableSequences']}")
     print(f"Flat feature length: {report['dataset']['flatFeatureLength']}")
 
